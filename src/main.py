@@ -1,7 +1,6 @@
 import subprocess
 from threading import Thread
 import time
-from alsa_midi import SequencerClient, READ_PORT, WRITE_PORT, NoteOnEvent, NoteOffEvent
 
 from .appconfig import load_keyboards
 from .midi import metronome, event_listener, connect_keyboard_to_synth
