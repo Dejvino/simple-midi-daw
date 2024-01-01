@@ -12,7 +12,9 @@
 
 > Reliable and easy to use synth for your MIDI keyboard.
 
-- [ ] Configurable MIDI sources (keyboard)
+- [ ] Configurable MIDI sources (keyboards)
+    - [ ] one default config (useful as a template)
+    - [ ] library of configs for known models
 - [ ] Configurable FluidSynth
     - [ ] sound font (system default || specific file)
     - [ ] audio output module (`-a xxx`)
