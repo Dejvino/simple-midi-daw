@@ -1,6 +1,8 @@
 import subprocess
+from threading import Thread
 import time
-from alsa_midi import SequencerClient, READ_PORT, NoteOnEvent, NoteOffEvent
+from alsa_midi import SequencerClient, READ_PORT, WRITE_PORT, NoteOnEvent, NoteOffEvent
+
 
 def spawn_synth():
     print("Spawning synthesizer")
@@ -9,28 +11,58 @@ def spawn_synth():
     time.sleep(1)
     return synth
 
-def send_note():
-    print("Creating MIDI client")
-    client = SequencerClient("my client")
-    print("Creating port")
-    port = client.create_port("output", caps=READ_PORT)
-    print("Connecting to destination port")
-    dest_port = client.list_ports(output=True)[0]
-    port.connect_to(dest_port)
-    print("Sending note")
+def create_client(suffix):
+    return SequencerClient("simple-midi-daw_" + suffix)
+
+def connect_keyboard_to_synth():
+    client = create_client("keyboard")
+    # TODO: find the synth port
+    synthPort = client.list_ports(output=True)[0]
+    # TODO: find the keyboard
+    keyboardPort = client.list_ports(input=True)[0]
+    client.subscribe_port(keyboardPort, synthPort)
+
+def event_listener():
+    client = create_client("listener")
+    port = client.create_port("midiIn", WRITE_PORT)
+    while True:
+            print("Awaiting event...")
+            event = client.event_input()
+            print(repr(event))
+
+def metronome():
+    client = create_client("metronome")
+    port = client.create_port("midiOut")
+
+    # TODO: should match the synth
+    list(map(lambda dest_port: port.connect_to(dest_port), client.list_ports(output=True)))
+
+    while True:
+        print("Sending note.")
+        send_note(client, port)
+        time.sleep(1)
+
+def send_note(client, port):
     event1 = NoteOnEvent(note=60, velocity=64, channel=0)
     client.event_output(event1)
     client.drain_output()
-    print("Waiting")
     time.sleep(1)
-    print("Ending note")
     event2 = NoteOffEvent(note=60, channel=0)
     client.event_output(event2)
     client.drain_output()
-    print("Done!")
+
+def run_metronome_and_listnener():
+    listenerThread = Thread(target=event_listener)
+    listenerThread.start()
+    time.sleep(1)
+    metronomeThread = Thread(target=metronome)
+    metronomeThread.start()
+    
+    listenerThread.join()
+    metronomeThread.join()
 
 def main():
     with spawn_synth() as synth:
-        send_note()
+        connect_keyboard_to_synth()
+        run_metronome_and_listnener()
         synth.terminate()
-

@@ -4,9 +4,9 @@
 
 - [x] Spawn FluidSynth
 - [x] Connect to FluidSynth to send custom notes
-- [ ] Connect to a MIDI keyboard and print out events
-- [ ] Connect a MIDI keyboard to FluidSynth
-- [ ] MIDI keyboard plays music!
+- [x] Connect to a MIDI source and print out events
+- [x] Connect a MIDI keyboard to FluidSynth
+- [x] MIDI keyboard plays music!
 
 # Core: Live Play
 
@@ -16,6 +16,7 @@
 - [ ] Configurable FluidSynth
     - [ ] sound font (system default || specific file)
     - [ ] audio output module (`-a xxx`)
+- [ ] Automated MIDI source discovery (subscribe to port changes)
 - [ ] Customizable key mapping, support for various MIDI keyboards
 
 
