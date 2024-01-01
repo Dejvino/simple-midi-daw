@@ -17,20 +17,24 @@ def create_client(suffix):
 
 def connect_keyboard_to_synth():
     keyboardCfg = load_keyboards()
-    print("Keyboard config: " + repr(keyboardCfg))
     keyboardClientName = keyboardCfg['description']['client_name']
+    keyboardPortName = keyboardCfg['description']['client_port_name']
+    print("Expected MIDI keyboard: " + keyboardClientName)
     client = create_client("keyboard")
     # TODO: find the synth port
     synthPort = client.list_ports(output=True)[0]
-    print("Synth port: " + repr(synthPort.get_info()))
     # TODO: find the keyboard
     print("Connecting known keyboards to the synth...")
     inPorts = client.list_ports(input=True)
     for port in inPorts:
-        portInfo = port.get_info()
-        if portInfo.name == keyboardClientName:
-            print("Recognized keyboard: " + repr(portInfo))
-            client.subscribe_port(port, synthPort)
+        if port.client_name == keyboardClientName:
+            if port.name == keyboardPortName:
+                print("Recognized MIDI keyboard client and port: " + repr(port))
+                client.subscribe_port(port, synthPort)
+            else:
+                print("Recognized MIDI keyboard client but not port: " + repr(port))
+        else:
+            print("Unknown input: " + repr(port))
     print("Done connecting keyboards to the synth.")
 
 def event_listener():
@@ -54,11 +58,11 @@ def metronome():
         time.sleep(1)
 
 def send_note(client, port):
-    event1 = NoteOnEvent(note=60, velocity=64, channel=0)
+    event1 = NoteOnEvent(note=60, velocity=64, channel=10)
     client.event_output(event1)
     client.drain_output()
     time.sleep(1)
-    event2 = NoteOffEvent(note=60, channel=0)
+    event2 = NoteOffEvent(note=60, channel=10)
     client.event_output(event2)
     client.drain_output()
 

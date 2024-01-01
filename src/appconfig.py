@@ -9,5 +9,4 @@ def load_keyboards():
     result = config.read(configFiles)
     # TODO: verify the result matches what we requested
     print("Configs loaded.")
-    print(repr(config))
     return config
