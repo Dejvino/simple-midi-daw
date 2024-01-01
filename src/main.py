@@ -1,17 +1,15 @@
-import os
+import subprocess
 import time
 from alsa_midi import SequencerClient, READ_PORT, NoteOnEvent, NoteOffEvent
 
-synth = None
-
 def spawn_synth():
     print("Spawning synthesizer")
-    synth = os.popen("fluidsynth -s")
+    synth = subprocess.Popen(["fluidsynth",  "default.sf2", "-s", "-a", "pulseaudio"])
     print("OK")
+    time.sleep(1)
+    return synth
 
-def main():
-    spawn_synth()
-
+def send_note():
     print("Creating MIDI client")
     client = SequencerClient("my client")
     print("Creating port")
@@ -30,4 +28,9 @@ def main():
     client.event_output(event2)
     client.drain_output()
     print("Done!")
+
+def main():
+    with spawn_synth() as synth:
+        send_note()
+        synth.terminate()
 
