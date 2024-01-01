@@ -3,6 +3,7 @@ from threading import Thread
 import time
 from alsa_midi import SequencerClient, READ_PORT, WRITE_PORT, NoteOnEvent, NoteOffEvent
 
+from .appconfig import load_keyboards
 
 def spawn_synth():
     print("Spawning synthesizer")
@@ -15,12 +16,22 @@ def create_client(suffix):
     return SequencerClient("simple-midi-daw_" + suffix)
 
 def connect_keyboard_to_synth():
+    keyboardCfg = load_keyboards()
+    print("Keyboard config: " + repr(keyboardCfg))
+    keyboardClientName = keyboardCfg['description']['client_name']
     client = create_client("keyboard")
     # TODO: find the synth port
     synthPort = client.list_ports(output=True)[0]
+    print("Synth port: " + repr(synthPort.get_info()))
     # TODO: find the keyboard
-    keyboardPort = client.list_ports(input=True)[0]
-    client.subscribe_port(keyboardPort, synthPort)
+    print("Connecting known keyboards to the synth...")
+    inPorts = client.list_ports(input=True)
+    for port in inPorts:
+        portInfo = port.get_info()
+        if portInfo.name == keyboardClientName:
+            print("Recognized keyboard: " + repr(portInfo))
+            client.subscribe_port(port, synthPort)
+    print("Done connecting keyboards to the synth.")
 
 def event_listener():
     client = create_client("listener")
