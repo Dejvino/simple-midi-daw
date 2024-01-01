@@ -44,16 +44,16 @@ def metronome():
     # TODO: should match the synth
     list(map(lambda dest_port: port.connect_to(dest_port), client.list_ports(output=True)))
 
-    while True:
-        print("Sending note.")
-        send_note(client, port)
-        time.sleep(1)
+    #while True:
+    #    print("Sending note.")
+    #    send_note(client, port)
+    #    time.sleep(1)
 
 def send_note(client, port):
-    event1 = NoteOnEvent(note=60, velocity=64, channel=9)
+    event1 = NoteOnEvent(note=70, velocity=64, channel=9)
     client.event_output(event1)
     client.drain_output()
     time.sleep(1)
-    event2 = NoteOffEvent(note=60, channel=9)
+    event2 = NoteOffEvent(note=70, channel=9)
     client.event_output(event2)
     client.drain_output()
