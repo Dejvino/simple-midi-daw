@@ -46,6 +46,7 @@ def metronome():
     list(map(lambda dest_port: port.connect_to(dest_port), client.list_ports(output=True)))
 
     enabled = config.getboolean("enabled")
+    bpm = int(config['bpm'])
     beat_primary_note = config['beat_primary_note']
     beat_primary_velocity = config['beat_primary_velocity']
     beat_secondary_note = config['beat_secondary_note']
@@ -59,19 +60,18 @@ def metronome():
         # TODO: enable/disable controlled by MIDI keyboard
         if enabled:
             print("Tick {}/{}".format(current_beat+1, beat_time_measure))
+            wait = 60 / bpm
             if current_beat == 0:
-                send_note(client, port, channel, beat_primary_note, beat_primary_velocity)
+                send_note(client, port, channel, beat_primary_note, beat_primary_velocity, wait)
             else:
-                send_note(client, port, channel, beat_secondary_note, beat_secondary_velocity)
-            # TODO: consider beat time
-            time.sleep(1)
+                send_note(client, port, channel, beat_secondary_note, beat_secondary_velocity, wait)
         current_beat = (current_beat + 1) % beat_time_measure
 
-def send_note(client, port, channel, note, velocity):
+def send_note(client, port, channel, note, velocity, wait):
     event1 = NoteOnEvent(note=note, velocity=velocity, channel=channel)
     client.event_output(event1)
     client.drain_output()
-    time.sleep(1)
+    time.sleep(wait)
     event2 = NoteOffEvent(note=note, channel=channel)
     client.event_output(event2)
     client.drain_output()
