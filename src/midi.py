@@ -61,10 +61,14 @@ def metronome():
         if enabled:
             print("Tick {}/{}".format(current_beat+1, beat_time_measure))
             wait = 60 / bpm
-            if current_beat == 0:
-                send_note(client, port, channel, beat_primary_note, beat_primary_velocity, wait)
-            else:
-                send_note(client, port, channel, beat_secondary_note, beat_secondary_velocity, wait)
+            try:
+                if current_beat == 0:
+                    send_note(client, port, channel, beat_primary_note, beat_primary_velocity, wait)
+                else:
+                    send_note(client, port, channel, beat_secondary_note, beat_secondary_velocity, wait)
+            except:
+                print("EXCEPTION sending metronome note. Exiting.")
+                break
         current_beat = (current_beat + 1) % beat_time_measure
 
 def send_note(client, port, channel, note, velocity, wait):

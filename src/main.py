@@ -5,6 +5,12 @@ import time
 from .appconfig import load_keyboards
 from .midi import metronome, event_listener, connect_keyboard_to_synth
 
+def wrap_runnable(fn):
+    try:
+        fn()
+    except:
+        print("EXCEPTION")
+
 def spawn_synth():
     print("Spawning synthesizer")
     synth = subprocess.Popen(["fluidsynth",  "default.sf2", "-s", "-a", "pulseaudio"])
@@ -13,10 +19,10 @@ def spawn_synth():
     return synth
 
 def run_metronome_and_listnener():
-    listenerThread = Thread(target=event_listener)
+    listenerThread = Thread(target=lambda : wrap_runnable(event_listener))
     listenerThread.start()
     time.sleep(1)
-    metronomeThread = Thread(target=metronome)
+    metronomeThread = Thread(target=lambda : wrap_runnable(metronome))
     metronomeThread.start()
     
     listenerThread.join()
