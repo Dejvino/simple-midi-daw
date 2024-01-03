@@ -3,7 +3,7 @@ from threading import Thread
 import time
 from alsa_midi import SequencerClient, READ_PORT, WRITE_PORT, NoteOnEvent, NoteOffEvent
 
-from .appconfig import load_keyboards
+from .appconfig import load_common, load_keyboards
 
 def create_client(suffix):
     return SequencerClient("simple-midi-daw_" + suffix)
@@ -38,22 +38,40 @@ def event_listener():
             print(repr(event))
 
 def metronome():
+    config = load_common()['metronome']
     client = create_client("metronome")
     port = client.create_port("midiOut")
 
     # TODO: should match the synth
     list(map(lambda dest_port: port.connect_to(dest_port), client.list_ports(output=True)))
 
-    #while True:
-    #    print("Sending note.")
-    #    send_note(client, port)
-    #    time.sleep(1)
+    enabled = config.getboolean("enabled")
+    beat_primary_note = config['beat_primary_note']
+    beat_primary_velocity = config['beat_primary_velocity']
+    beat_secondary_note = config['beat_secondary_note']
+    beat_secondary_velocity = config['beat_secondary_velocity']
+    beat_time = config['beat_time'].split("/")
+    beat_time_beats = int(beat_time[0])
+    beat_time_measure = int(beat_time[1])
+    channel = config['channel']
+    current_beat = 0
+    while True:
+        # TODO: enable/disable controlled by MIDI keyboard
+        if enabled:
+            print("Tick {}/{}".format(current_beat+1, beat_time_measure))
+            if current_beat == 0:
+                send_note(client, port, channel, beat_primary_note, beat_primary_velocity)
+            else:
+                send_note(client, port, channel, beat_secondary_note, beat_secondary_velocity)
+            # TODO: consider beat time
+            time.sleep(1)
+        current_beat = (current_beat + 1) % beat_time_measure
 
-def send_note(client, port):
-    event1 = NoteOnEvent(note=70, velocity=64, channel=9)
+def send_note(client, port, channel, note, velocity):
+    event1 = NoteOnEvent(note=note, velocity=velocity, channel=channel)
     client.event_output(event1)
     client.drain_output()
     time.sleep(1)
-    event2 = NoteOffEvent(note=70, channel=9)
+    event2 = NoteOffEvent(note=note, channel=channel)
     client.event_output(event2)
     client.drain_output()
