@@ -35,4 +35,6 @@ class EventListener:
                 self.playbackInbox.append("stop")
             elif (is_key_pressed(config, event, "record")):
                 self.playbackInbox.append("record")
+            elif (is_key_pressed(config, event, "loop")):
+                self.playbackInbox.append("loop")
             
