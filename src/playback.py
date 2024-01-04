@@ -76,7 +76,6 @@ class Playback:
             self.process.terminate()
             self.process = None
             print("Playback process stopped.")
-        send_panic_event_to_synth()
 
     def on_record(self):
         print("Playback: REC")
@@ -89,3 +88,6 @@ class Playback:
         if (self.process == None):
             synth_port = find_synth_port(self.client)
             self.process = spawn_loop(synth_port, self.file)
+
+    # TODO: add somethere, e.g. Undo?
+    #send_panic_event_to_synth()

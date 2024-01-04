@@ -20,7 +20,7 @@ def create_output_port(client):
 def send_panic_event(client, target_port):
     port = create_output_port(client)
     port.connect_to(target_port)
-    event1 = ResetEvent()
+    event1 = ResetEvent() # TODO: this works, but it resets the instruments
     client.event_output_buffer(event1)
     client.drain_output()
 
