@@ -32,21 +32,20 @@ def for_every_keyboard(fn):
             fn(port)
 
 def connect_port_to_synth(client, port):
-    synthPort = find_synth_port(client)
-    port.connect_to(synthPort)
-    
-def connect_keyboard_to_synth():
-    keyboardCfg = load_keyboards()
-    keyboardClientName = keyboardCfg['description']['client_name']
-    keyboardPortName = keyboardCfg['description']['client_port_name']
-    print("Expected MIDI keyboard: " + keyboardClientName)
-    client = create_client("keyboard")
-    synthPort = find_synth_port(client)
-    for_every_keyboard(lambda port : client.subscribe_port(port, synthPort))
+    synth_port = find_synth_port(client)
+    port.connect_to(synth_port)
+
+def subscribe_keyboards_to_synth():
+    client = create_client("keyboard-subscriber")
+    synth_port = find_synth_port(client)
+    for_every_keyboard(lambda kbd_port : client.subscribe_port(kbd_port, synth_port))
 
 def connect_to_every_keyboard(client):
     port = create_input_port(client)
-    for_every_keyboard(lambda kbd_port : client.subscribe_port(kbd_port, port))
+    def connect_port(kbd_port):
+        client.subscribe_port(kbd_port, port)
+        #port.connect_to(kbd_port)
+    for_every_keyboard(connect_port)
 
 def send_note(client, port, channel, note, velocity, wait):
     event1 = NoteOnEvent(note=note, velocity=velocity, channel=channel)
