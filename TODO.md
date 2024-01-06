@@ -13,29 +13,35 @@
 > Reliable and easy to use synth for your MIDI keyboard.
 
 - [ ] Configurable MIDI sources (keyboards)
-    - [ ] one default config (useful as a template)
+    - [x] one default config (useful as a template)
+    - [x] customizable key mapping
     - [ ] library of configs for known models
 - [ ] Configurable FluidSynth
     - [ ] sound font (system default || specific file)
     - [ ] audio output module (`-a xxx`)
 - [ ] Automated MIDI source discovery (subscribe to port changes)
-- [ ] Customizable key mapping, support for various MIDI keyboards
-
 
 # DAW: Basics
 
 > Record and play MIDI clips.
 
 - [ ] Metronome
-- [ ] Record and play back MIDI clips
-- [ ] Record and play loops
-- [ ] Save MIDI recordings for later
+    - [x] Enable/Disable button
+    - [x] Configurable defaults
+    - [ ] Change of tempo or time throug MIDI
+- [x] Record and play a MIDI clip
+    - [x] Record MIDI to a file
+    - [x] Play MIDI from a file once
+    - [x] Play MIDI from a file repeatedly
 
 
 # DAW: Extras
 
 > Going beyond a simple Plug & Play MIDI Synthesizer.
 
+- [ ] Gappless MIDI playback of loops
+- [ ] Record and play MIDI clips (bank of buttons)
+- [ ] Record the whole session (keybeard ayd clips) into MIDI file
 - [ ] Configurable Faders/Pots mapping
 - [ ] Multiple tracks support
 - [ ] Configurable MIDI proxy (e.g. split keyboard for multiple instruments)
@@ -43,6 +49,7 @@
 - [ ] Launchpad support:
     - [ ] playing clips
     - [ ] creating drum loops
+- [ ] Different synths support
 - [ ] Export to external storage
 - [ ] Wave audio support (clips playback, backing track, mixed recording, ...)
 - ...
