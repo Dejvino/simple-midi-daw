@@ -60,9 +60,41 @@ def run_services():
         thread.join()
     # app terminated.
 
-def main():
+def app(args):
     with spawn_synth() as synth:
         # TODO: move to DAW
         subscribe_keyboards_to_synth()
         run_services()
         synth.terminate()
+        
+def main():
+    import argparse
+
+    services = ["metronome", "playback"]
+    parser = argparse.ArgumentParser(description='Simple MIDI DAW')
+    parser.add_argument('-s', '--standalone', choices=services,
+                        help='component to run in standalone mode, without the whole DAW')
+
+
+    args = parser.parse_args()
+    
+    if args.standalone:
+        import code
+        inbox = deque()
+        match args.standalone:
+            case "metronome":
+                service = Metronome(inbox)
+            case "playback":
+                service = Playback(inbox)
+            case _:
+                print("Unknown standalone: ", args.standalone)
+                return
+        thread = wrap_runnable_in_thread(service)
+        thread.start()
+        code.interact(banner="Simple MIDI DAW - shell for standalone " + args.standalone, local=dict(globals(), **locals()))
+        print("Terminating standalone component.")
+        inbox.append("exit")
+        thread.join()
+        print("Exiting.")
+    else:
+        app(args)

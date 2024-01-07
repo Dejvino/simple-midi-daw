@@ -2,6 +2,7 @@ import subprocess
 from threading import Thread
 
 from .midi import create_client, find_synth_port, find_keyboard_port, send_panic_event_to_synth
+from .appservice import AppService
 
 def get_port_address(port_info):
     return "{}:{}".format(port_info.client_id, port_info.port_id)
@@ -30,30 +31,19 @@ def spawn_recorder(kbd_port, file):
     recorder = subprocess.Popen(["arecordmidi", "-p", get_port_address(kbd_port), file])
     return recorder
 
-
-class Playback:
+class Playback(AppService):
     def __init__(self, inbox):
-        self.inbox = inbox
-        self.active = True
+        super().__init__(inbox)
         self.process = None
         self.file = "recording.mid"
 
-    def run(self):
+    def startup(self):
         self.client = create_client("playback")
-        while self.active:
-            self.check_inbox()
-
-    def check_inbox(self):
-        while self.inbox:
-            msg = self.inbox.popleft()
-            self.on_message(msg)
     
     def on_message(self, msg):
         # TODO: switch msg type
         print("Message in playback: " + repr(msg))
-        if (msg == "exit"):
-            self.active = False
-        elif (msg == "play"):
+        if (msg == "play"):
             self.on_play()
         elif (msg == "record"):
             self.on_record()

@@ -1,16 +1,16 @@
 from .midi import create_client
 from .appconfig import load_common, load_keyboards
+from .appservice import AppService
 
-class Daw:
+class Daw(AppService):
     def __init__(self, dawInbox):
-        self.inbox = dawInbox
-        self.active = True
+        super().__init__(dawInbox)
 
-    def run(self):
+    def startup(self):
         self.client = create_client("daw")
         self.enter_daw_mode()
-        while self.active:
-            self.check_inbox()
+
+    def shutdown(self):
         self.leave_daw_mode()
 
     def enter_daw_mode(self):
@@ -22,16 +22,7 @@ class Daw:
         # TODO: leave DAW in previously registered kbds
         pass
 
-    def check_inbox(self):
-        while self.inbox:
-            msg = self.inbox.popleft()
-            self.on_message(msg)
-    
     def on_message(self, msg):
         # TODO: switch msg type
         print("Message in DAW: " + repr(msg))
-        if (msg == "exit"):
-            self.active = False
-        else:
-            print("Unknown DAW message: " + repr(msg))
             
