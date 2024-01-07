@@ -6,6 +6,7 @@ from collections import deque
 
 from .midi import subscribe_keyboards_to_synth
 from .eventlistener import EventListener
+from .daw import Daw
 from .metronome import Metronome
 from .playback import Playback
 
@@ -27,34 +28,41 @@ def spawn_synth():
     return synth
 
 def run_services():
+    # App starting...
+    dawInbox = deque()
     metronomeInbox = deque()
     playbackInbox = deque()
 
-    eventListener = EventListener(metronomeInbox, playbackInbox)
+    eventListener = EventListener(dawInbox, metronomeInbox, playbackInbox)
     eventListenerThread = wrap_runnable_in_thread(eventListener)
     eventListenerThread.start()
-    
+
     time.sleep(1)
     
-    metronome = Metronome(metronomeInbox)
-    metronomeThread = wrap_runnable_in_thread(metronome)
-    metronomeThread.start()
-    
-    playback = Playback(playbackInbox)
-    playbackThread = wrap_runnable_in_thread(playback)
-    playbackThread.start()
+    service_threads = []
+    service_threads.append(wrap_runnable_in_thread(Daw(dawInbox)))
+    service_threads.append(wrap_runnable_in_thread(Metronome(metronomeInbox)))
+    service_threads.append(wrap_runnable_in_thread(Playback(playbackInbox)))
+
+    for thread in service_threads:
+        thread.start()
 
     try:
+        # ... app running ...
         eventListenerThread.join()
+        # ...app terminating.
     finally:
+        dawInbox.append("exit")
         metronomeInbox.append("exit")
         playbackInbox.append("exit")
     
-    metronomeThread.join()
-    playbackThread.join()
+    for thread in service_threads:
+        thread.join()
+    # app terminated.
 
 def main():
     with spawn_synth() as synth:
+        # TODO: move to DAW
         subscribe_keyboards_to_synth()
         run_services()
         synth.terminate()

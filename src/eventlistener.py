@@ -3,7 +3,8 @@ from .midi import subscribe_keyboards_to_synth, connect_port_to_synth, connect_t
 from .appconfig import load_common, load_keyboards
 
 class EventListener:
-    def __init__(self, metronomeInbox, playbackInbox):
+    def __init__(self, dawInbox, metronomeInbox, playbackInbox):
+        self.dawInbox = dawInbox
         self.metronomeInbox = metronomeInbox
         self.playbackInbox = playbackInbox
 
