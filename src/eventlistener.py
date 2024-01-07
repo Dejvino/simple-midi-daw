@@ -19,9 +19,10 @@ class EventListener:
             self.on_event(event)
     
     def on_event(self, event):
-        print("Event in listener: " + repr(event))
-        config = load_keyboards()
+        print("Event in listener: " + repr(event) + " from " + repr(event.source))
         # TODO: load based on event source (midi port - keyboard)
+        config = load_keyboards()
+        # TODO: route event based on event source (MIDI vs DAW)
         if (isinstance(event, ControlChangeEvent)):
             def is_key(config, event, keyname):
                 # TODO: check mapping exists

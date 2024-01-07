@@ -1,7 +1,7 @@
 import subprocess
 from threading import Thread
 import time
-from alsa_midi import SequencerClient, READ_PORT, WRITE_PORT, NoteOnEvent, NoteOffEvent, ResetEvent
+from alsa_midi import SequencerClient, READ_PORT, WRITE_PORT, NoteOnEvent, NoteOffEvent, ResetEvent, SysExEvent
 
 from .appconfig import load_keyboards
 
@@ -83,3 +83,8 @@ def send_note(client, channel, note, velocity, wait):
     send_note_on(client, channel, note, velocity)
     time.sleep(wait)
     send_note_off(client, channel, note)
+
+def send_sysex(client, data):
+    event = SysExEvent(data)
+    client.event_output_buffer(event)
+    client.drain_output()
