@@ -34,9 +34,9 @@ class Metronome(AppService):
             wait = 60 / bpm
             try:
                 if self.current_beat == 0:
-                    send_note(client, port, channel, beat_primary_note, beat_primary_velocity, wait)
+                    send_note(client, channel, beat_primary_note, beat_primary_velocity, wait)
                 else:
-                    send_note(client, port, channel, beat_secondary_note, beat_secondary_velocity, wait)
+                    send_note(client, channel, beat_secondary_note, beat_secondary_velocity, wait)
             except:
                 print("EXCEPTION sending metronome note. Exiting.")
                 raise

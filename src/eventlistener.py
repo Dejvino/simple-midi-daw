@@ -12,7 +12,8 @@ class EventListener:
         client = create_client("listener")
         # TODO: move to midi.py
         port = client.create_port("midiIn", WRITE_PORT)
-        for_every_keyboard(lambda kbd_port : client.subscribe_port(kbd_port, port))
+        for port_type in ["midi", "daw"]:
+            for_every_keyboard(lambda kbd_port : client.subscribe_port(kbd_port, port), port_type)
         while True:
             event = client.event_input()
             self.on_event(event)

@@ -17,6 +17,10 @@ def create_output_port(client):
     # TODO: name is not unique
     return client.create_port("midiOut", READ_PORT)
 
+def create_inout_port(client):
+    # TODO: name is not unique
+    return client.create_port("midiInOut")
+
 def send_panic_event(client, target_port):
     port = create_output_port(client)
     port.connect_to(target_port)
@@ -32,21 +36,21 @@ def find_synth_port(client):
     # TODO: find the synth based on name
     return client.list_ports(output=True)[0]
 
-def find_every_keyboard_port():
+def find_every_keyboard_port(port_type='midi'):
     keyboardCfg = load_keyboards()
     keyboardClientName = keyboardCfg['description']['client_name']
-    keyboardPortName = keyboardCfg['description']['client_port_name']
+    keyboardPortName = keyboardCfg['description']['client_port_' + port_type + '_name']
     client = create_client("keyboard")
     inPorts = client.list_ports(input=True)
     for port in inPorts:
         if port.client_name == keyboardClientName and port.name == keyboardPortName:
             yield port
 
-def find_keyboard_port():
-    return list(find_every_keyboard_port())[0]
+def find_keyboard_port(port_type='midi'):
+    return list(find_every_keyboard_port(port_type))[0]
 
-def for_every_keyboard(fn):
-    for port in find_every_keyboard_port():
+def for_every_keyboard(fn, port_type='midi'):
+    for port in find_every_keyboard_port(port_type):
         fn(port)
 
 def connect_port_to_synth(client, port):
@@ -65,11 +69,17 @@ def connect_to_every_keyboard(client):
         #port.connect_to(kbd_port)
     for_every_keyboard(connect_port)
 
-def send_note(client, port, channel, note, velocity, wait):
+def send_note_on(client, channel, note, velocity):
     event1 = NoteOnEvent(note=note, velocity=velocity, channel=channel)
     client.event_output_buffer(event1)
     client.drain_output()
-    time.sleep(wait)
+
+def send_note_off(client, channel, note):
     event2 = NoteOffEvent(note=note, channel=channel)
     client.event_output_buffer(event2)
     client.drain_output()
+
+def send_note(client, channel, note, velocity, wait):
+    send_note_on(client, channel, note, velocity)
+    time.sleep(wait)
+    send_note_off(client, channel, note)

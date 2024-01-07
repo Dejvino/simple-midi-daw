@@ -70,7 +70,7 @@ def app(args):
 def main():
     import argparse
 
-    services = ["metronome", "playback"]
+    services = ["metronome", "playback", "daw"]
     parser = argparse.ArgumentParser(description='Simple MIDI DAW')
     parser.add_argument('-s', '--standalone', choices=services,
                         help='component to run in standalone mode, without the whole DAW')
@@ -86,6 +86,8 @@ def main():
                 service = Metronome(inbox)
             case "playback":
                 service = Playback(inbox)
+            case "daw":
+                service = Daw(inbox)
             case _:
                 print("Unknown standalone: ", args.standalone)
                 return
