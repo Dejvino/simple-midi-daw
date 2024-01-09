@@ -47,7 +47,9 @@ def find_every_keyboard_port(port_type='midi'):
             yield port
 
 def find_keyboard_port(port_type='midi'):
-    return list(find_every_keyboard_port(port_type))[0]
+    keyboards = list(find_every_keyboard_port(port_type))
+    assert len(keyboards) > 0
+    return keyboards[0]
 
 def for_every_keyboard(fn, port_type='midi'):
     for port in find_every_keyboard_port(port_type):

@@ -3,23 +3,17 @@ from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 
 class Daw(AppService):
-    def __init__(self, dawInbox):
+    def __init__(self, dawInbox, kbdInbox):
         super().__init__(dawInbox)
+        self.kbdInbox = kbdInbox
 
     def startup(self):
-        self.connect_keyboard()
+        pass
 
     def shutdown(self):
-        self.disconnect_keyboard()
+        pass
 
     def on_message(self, msg):
         # TODO: switch msg type
         print("Message in DAW: " + repr(msg))
-            
-    def connect_keyboard(self):
-        pass
-        # TODO
-
-    def disconnect_keyboard(self):
-        pass
-        # TODO
+    
