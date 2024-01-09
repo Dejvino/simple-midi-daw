@@ -4,21 +4,12 @@ from threading import Thread
 import time
 from collections import deque
 
+from .appservices import AppServices
 from .midi import subscribe_keyboards_to_synth
 from .eventlistener import EventListener
 from .daw import Daw
 from .metronome import Metronome
 from .playback import Playback
-
-def wrap_runnable_in_thread(runnable):
-    def wrapper():
-        try:
-            print("Thread running")
-            runnable.run()
-        except Exception as e:
-            print("EXCEPTION: " + str(e))
-            traceback.print_exc(file=sys.stdout)
-    return Thread(target=wrapper)
 
 def spawn_synth():
     print("Spawning synthesizer")
@@ -28,36 +19,36 @@ def spawn_synth():
     return synth
 
 def run_services():
+    app_services = AppServices()
+
     # App starting...
     dawInbox = deque()
     metronomeInbox = deque()
     playbackInbox = deque()
 
+    #kbdInbox = deque()
+    #keyboard = MidiKeyboard(self.kbdInbox)
+
     eventListener = EventListener(dawInbox, metronomeInbox, playbackInbox)
-    eventListenerThread = wrap_runnable_in_thread(eventListener)
-    eventListenerThread.start()
-
-    time.sleep(1)
+    app_services.start_main_service(eventListener)
     
-    service_threads = []
-    service_threads.append(wrap_runnable_in_thread(Daw(dawInbox)))
-    service_threads.append(wrap_runnable_in_thread(Metronome(metronomeInbox)))
-    service_threads.append(wrap_runnable_in_thread(Playback(playbackInbox)))
+    # TODO: remove and fix waiting for init
+    time.sleep(1)
 
-    for thread in service_threads:
-        thread.start()
+    app_services.add_aux_service(Daw(dawInbox))
+    app_services.add_aux_service(Metronome(metronomeInbox))
+    app_services.add_aux_service(Playback(playbackInbox))
 
     try:
         # ... app running ...
-        eventListenerThread.join()
+        app_services.wait_for_main_service()
         # ...app terminating.
     finally:
         dawInbox.append("exit")
         metronomeInbox.append("exit")
         playbackInbox.append("exit")
     
-    for thread in service_threads:
-        thread.join()
+    app_services.wait_for_aux_services()
     # app terminated.
 
 def app(args):
