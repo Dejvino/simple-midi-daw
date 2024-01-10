@@ -1,43 +1,36 @@
-from alsa_midi import WRITE_PORT, ControlChangeEvent
-from .midi import subscribe_keyboards_to_synth, connect_port_to_synth, connect_to_every_keyboard, send_note, create_client, create_output_port, create_input_port, for_every_keyboard
+from .midi import create_client, create_input_port, for_every_keyboard
 from .appconfig import load_common, load_keyboards
 
+class MidiEvent:
+    def __init__(self, source_type, event):
+        self.source_type = source_type
+        self.event = event
+        
 class EventListener:
-    def __init__(self, dawInbox, metronomeInbox, playbackInbox):
+    def __init__(self, dawInbox):
         self.dawInbox = dawInbox
-        self.metronomeInbox = metronomeInbox
-        self.playbackInbox = playbackInbox
 
     def run(self):    
         client = create_client("listener")
-        # TODO: move to midi.py
-        port = client.create_port("midiIn", WRITE_PORT)
+        port = create_input_port(client)
+        self.port_type_map = {}
         for port_type in ["midi", "daw"]:
-            for_every_keyboard(lambda kbd_port : client.subscribe_port(kbd_port, port), port_type)
+            def register_keyboard(kbd_port):
+                client.subscribe_port(kbd_port, port)
+                self.port_type_map[address_str(kbd_port)] = port_type
+            for_every_keyboard(register_keyboard, port_type)
         while True:
             event = client.event_input()
             self.on_event(event)
     
     def on_event(self, event):
-        print("Event in listener: " + repr(event) + " from " + repr(event.source))
+        #print("Event in listener: " + repr(event) + " from " + repr(event.source))
         # TODO: load based on event source (midi port - keyboard)
         config = load_keyboards()
-        # TODO: route event based on event source (MIDI vs DAW)
-        if (isinstance(event, ControlChangeEvent)):
-            def is_key(config, event, keyname):
-                # TODO: check mapping exists
-                mapping = config['mapping.' + keyname]
-                return str(event.channel) == mapping['chan'] and str(event.param) == mapping['key']
-            def is_key_pressed(config, event, keyname):
-                return is_key(config, event, keyname) and event.value > 60
-            if (is_key_pressed(config, event, "click")):
-                self.metronomeInbox.append("click")
-            elif (is_key_pressed(config, event, "play")):
-                self.playbackInbox.append("play")
-            elif (is_key_pressed(config, event, "stop")):
-                self.playbackInbox.append("stop")
-            elif (is_key_pressed(config, event, "record")):
-                self.playbackInbox.append("record")
-            elif (is_key_pressed(config, event, "loop")):
-                self.playbackInbox.append("loop")
+        # TODO: check it is available
+        source_type = self.port_type_map[address_str(event.source)]
+        self.dawInbox.append(MidiEvent(source_type, event))
             
+def address_str(port):
+    # TODO: other input types?
+    return f"{port.client_id}:{port.port_id}"

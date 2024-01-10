@@ -28,7 +28,7 @@ def run_services():
     playbackInbox = deque()
     kbdInbox = deque()
 
-    eventListener = EventListener(dawInbox, metronomeInbox, playbackInbox)
+    eventListener = EventListener(dawInbox)
     app_services.start_main_service(eventListener)
     
     # TODO: remove and fix waiting for init
