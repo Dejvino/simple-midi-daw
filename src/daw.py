@@ -3,9 +3,11 @@ from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 
 class Daw(AppService):
-    def __init__(self, dawInbox, kbdInbox):
+    def __init__(self, dawInbox, kbdInbox, metronomeInbox, playbackInbox):
         super().__init__(dawInbox)
         self.kbdInbox = kbdInbox
+        self.metronomeInbox = metronomeInbox
+        self.playbackInbox = playbackInbox
 
     def startup(self):
         pass

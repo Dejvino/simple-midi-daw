@@ -10,6 +10,9 @@ class AppService:
             self.tick()
         self.shutdown()
 
+    def deliver_message(self, msg):
+        self.inbox.append(msg)
+
     def check_inbox(self):
         while self.inbox:
             msg = self.inbox.popleft()

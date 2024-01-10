@@ -34,18 +34,17 @@ def run_services():
     # TODO: remove and fix waiting for init
     time.sleep(1)
 
-    app_services.add_aux_service(Daw(dawInbox, kbdInbox))
+    app_services.add_aux_service(Daw(dawInbox, kbdInbox, metronomeInbox, playbackInbox))
     app_services.add_aux_service(Metronome(metronomeInbox))
     app_services.add_aux_service(Playback(playbackInbox))
+    app_services.add_aux_service(MidiKeyboard(kbdInbox))
 
     try:
         # ... app running ...
         app_services.wait_for_main_service()
         # ...app terminating.
     finally:
-        dawInbox.append("exit")
-        metronomeInbox.append("exit")
-        playbackInbox.append("exit")
+        app_services.send_aux_message("exit")
     
     app_services.wait_for_aux_services()
     # app terminated.
