@@ -18,13 +18,16 @@ class Daw(AppService):
         pass
 
     def on_message(self, msg):
-        # TODO: switch msg type
-        print("Message in DAW: " + repr(msg))
         if (isinstance(msg, MidiEvent)):
             self.on_midi_event(msg)
+        else:
+            print("Message in DAW not processed: " + repr(msg))
 
     def on_midi_event(self, msg):
         event = msg.event
+        print(f"{msg.source_type}: " + repr(event))
+        # TODO: load based on event source (midi port - keyboard)
+        config = load_keyboards()
         if (isinstance(event, ControlChangeEvent)):
             def is_key(config, event, keyname):
                 # TODO: check mapping exists
