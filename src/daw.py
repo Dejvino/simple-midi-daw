@@ -3,6 +3,7 @@ from .midi import create_client, create_output_port, find_keyboard_port, send_no
 from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 from .eventlistener import MidiEvent
+from .midikeyboard import KbdColorOp
 
 class Daw(AppService):
     def __init__(self, dawInbox, kbdInbox, metronomeInbox, playbackInbox):
@@ -39,10 +40,21 @@ class Daw(AppService):
                 self.metronomeInbox.append("click")
             elif (is_key_pressed(config, event, "play")):
                 self.playbackInbox.append("play")
+                # TODO: remove demo
+                self.kbdInbox.append(KbdColorOp("session", 0, 23, 0))
+                self.kbdInbox.append(KbdColorOp("session", 0, 21, 2))
             elif (is_key_pressed(config, event, "stop")):
                 self.playbackInbox.append("stop")
+                # TODO: remove demo
+                self.kbdInbox.append(KbdColorOp("session", 0, 10, 0))
             elif (is_key_pressed(config, event, "record")):
                 self.playbackInbox.append("record")
+                # TODO: remove demo
+                self.kbdInbox.append(KbdColorOp("session", 0, 106, 0))
+                self.kbdInbox.append(KbdColorOp("session", 0, 72, 1))
             elif (is_key_pressed(config, event, "loop")):
                 self.playbackInbox.append("loop")
+                # TODO: remove demo
+                self.kbdInbox.append(KbdColorOp("session", 0, 23, 0))
+                self.kbdInbox.append(KbdColorOp("session", 0, 38, 2))
     
