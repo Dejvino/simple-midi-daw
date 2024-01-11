@@ -1,5 +1,6 @@
+import time
 from alsa_midi import WRITE_PORT, ControlChangeEvent
-from .midi import subscribe_keyboards_to_synth, connect_port_to_synth, connect_to_every_keyboard, send_note, create_client, create_output_port, create_input_port, for_every_keyboard
+from .midi import connect_port_to_synth, send_note, create_client, create_output_port
 from .appconfig import load_common
 from .appservice import AppService
 
@@ -40,6 +41,8 @@ class Metronome(AppService):
             except:
                 print("EXCEPTION sending metronome note. Exiting.")
                 raise
+        else:
+            time.sleep(wait)
         self.current_beat = (self.current_beat + 1) % beat_time_measure
 
     def on_message(self, msg):

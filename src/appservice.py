@@ -1,3 +1,5 @@
+import time
+
 class AppService:
     def __init__(self, inbox):
         self.inbox = inbox
@@ -25,6 +27,7 @@ class AppService:
         pass
 
     def tick(self):
+        time.sleep(0.1)
         pass
         
     def on_message(self, msg):
