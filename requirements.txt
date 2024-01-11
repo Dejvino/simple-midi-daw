@@ -1,1 +1,1 @@
-alsa-midi
+mido[ports-rtmidi]

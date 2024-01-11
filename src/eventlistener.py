@@ -1,4 +1,4 @@
-from .midi import create_client, create_input_port, for_every_keyboard
+from . import midi_mido as midi
 from .appconfig import load_common, load_keyboards
 
 class MidiEvent:
@@ -11,24 +11,24 @@ class EventListener:
         self.dawInbox = dawInbox
 
     def run(self):    
-        client = create_client("listener")
-        port = create_input_port(client)
+        client = midi.create_client("listener")
+        port = midi.create_input_port(client)
         self.port_type_map = {}
         for port_type in ["midi", "daw"]:
             def register_keyboard(kbd_port):
-                client.subscribe_port(kbd_port, port)
-                self.port_type_map[address_str(kbd_port)] = port_type
-            for_every_keyboard(register_keyboard, port_type)
+                midi.connect_to_output_port(client, kbd_port)
+                self.port_type_map[kbd_port] = port_type
+            midi.for_every_keyboard(register_keyboard, port_type)
         while True:
-            event = client.event_input()
-            self.on_event(event)
+            for source_port, event in midi.read_events(client):
+                self.on_event(event, source_port)
     
-    def on_event(self, event):
+    def on_event(self, event, source_port):
         #print("Event in listener: " + repr(event) + " from " + repr(event.source))
         # TODO: load based on event source (midi port - keyboard)
         config = load_keyboards()
         # TODO: check it is available
-        source_type = self.port_type_map[address_str(event.source)]
+        source_type = self.port_type_map[source_port.name]
         self.dawInbox.append(MidiEvent(source_type, event))
             
 def address_str(port):
