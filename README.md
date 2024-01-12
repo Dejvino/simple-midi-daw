@@ -19,7 +19,7 @@ Headless, no GUI needed.
 ```shell
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 Copy or symlink some soundfont to `./default.sf2`.
@@ -44,8 +44,8 @@ and starts listening for MIDI commands (e.g. Record).
 ## Dependencies
 
 - Python3
-- [MIDO](https://github.com/mido/mido/) MIDI Objects library, defaulting to the [RtMidi backend](https://mido.readthedocs.io/en/stable/backends/rtmidi.html)
+- [MIDO](https://github.com/mido/mido/) MIDI Objects python library, defaulting to the [RtMidi backend](https://mido.readthedocs.io/en/stable/backends/rtmidi.html)
 - FluidSynth software synthesizer
-- (TODO) [pyFluidSynth](https://github.com/nwhitehead/pyfluidsynth) python library
+- [pyFluidSynth](https://github.com/nwhitehead/pyfluidsynth) python bindings library
 - some SoundFont2 file of your choice
 

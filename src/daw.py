@@ -1,14 +1,13 @@
-from alsa_midi import ControlChangeEvent
-from .midi import create_client, create_output_port, find_keyboard_port, send_note_on, send_note_off, send_sysex
 from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 from .eventlistener import MidiEvent
 from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 
 class Daw(AppService):
-    def __init__(self, dawInbox, kbdInbox, metronomeInbox, playbackInbox):
+    def __init__(self, dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox):
         super().__init__(dawInbox)
         self.kbdInbox = kbdInbox
+        self.synthInbox = synthInbox
         self.metronomeInbox = metronomeInbox
         self.playbackInbox = playbackInbox
 
@@ -29,7 +28,7 @@ class Daw(AppService):
         print(f"{msg.source_type}: " + repr(event))
         # TODO: load based on event source (midi port - keyboard)
         config = load_keyboards()
-        if (isinstance(event, ControlChangeEvent)):
+        if False:
             def is_key(config, event, keyname):
                 # TODO: check mapping exists
                 mapping = config['mapping.' + keyname]
@@ -61,4 +60,5 @@ class Daw(AppService):
                 self.kbdInbox.append(KbdColorOp("session", 0, 23, 0))
                 self.kbdInbox.append(KbdColorOp("session", 0, 38, 2))
                 self.kbdInbox.append(KbdDisplayTextOp("LOOP"))
-    
+        if msg.source_type == "midi":
+            self.synthInbox.append(msg)

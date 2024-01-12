@@ -1,5 +1,4 @@
 import time
-from alsa_midi import WRITE_PORT, ControlChangeEvent
 from .appconfig import load_common
 from .appservice import AppService
 from . import midi_mido as midi

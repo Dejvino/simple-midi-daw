@@ -5,25 +5,19 @@ import time
 from collections import deque
 
 from .appservices import AppServices, wrap_runnable_in_thread
-from .midi import subscribe_keyboards_to_synth
 from .eventlistener import EventListener
 from .daw import Daw
 from .metronome import Metronome
 from .playback import Playback
 from .midikeyboard import MidiKeyboard
-
-def spawn_synth():
-    print("Spawning synthesizer")
-    synth = subprocess.Popen(["fluidsynth",  "default.sf2", "-s", "-a", "pulseaudio"])
-    print("OK")
-    time.sleep(1)
-    return synth
+from .synth import Synth
 
 def run_services():
     app_services = AppServices()
 
     # App starting...
     dawInbox = deque()
+    synthInbox = deque()
     metronomeInbox = deque()
     playbackInbox = deque()
     kbdInbox = deque()
@@ -34,10 +28,11 @@ def run_services():
     # TODO: remove and fix waiting for init
     time.sleep(1)
 
-    app_services.add_aux_service(Daw(dawInbox, kbdInbox, metronomeInbox, playbackInbox))
+    app_services.add_aux_service(Daw(dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox))
     app_services.add_aux_service(Metronome(metronomeInbox))
     app_services.add_aux_service(Playback(playbackInbox))
     app_services.add_aux_service(MidiKeyboard(kbdInbox))
+    app_services.add_aux_service(Synth(synthInbox))
 
     try:
         # ... app running ...
@@ -50,16 +45,12 @@ def run_services():
     # app terminated.
 
 def app(args):
-    with spawn_synth() as synth:
-        # TODO: move to DAW
-        subscribe_keyboards_to_synth()
-        run_services()
-        synth.terminate()
+    run_services()
         
 def main():
     import argparse
 
-    services = ["metronome", "playback", "daw", "keyboard"]
+    services = ["metronome", "playback", "daw", "keyboard", "synth"]
     parser = argparse.ArgumentParser(description='Simple MIDI DAW')
     parser.add_argument('-s', '--standalone', choices=services,
                         help='component to run in standalone mode, without the whole DAW')
@@ -78,6 +69,8 @@ def main():
                 service = Daw(inbox)
             case "keyboard":
                 service = MidiKeyboard(inbox)
+            case "synth":
+                service = Synth(inbox)
             case _:
                 print("Unknown standalone: ", args.standalone)
                 return

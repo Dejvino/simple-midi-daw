@@ -1,1 +1,2 @@
 mido[ports-rtmidi]
+pyfluidsynth

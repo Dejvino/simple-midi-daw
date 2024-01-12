@@ -1,4 +1,4 @@
-from .midi import create_client, create_output_port, find_keyboard_port, send_note_on, send_note_off, send_sysex
+from .midi_mido import create_client, create_output_port, find_keyboard_port, send_note_on, send_note_off, send_sysex
 from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 
@@ -24,12 +24,14 @@ class MidiKeyboard(AppService):
         super().__init__(inbox)
     
     def startup(self):
-        self.client = create_client("keyboard")
-        self.port = create_output_port(self.client)
-        self.enter_daw_mode()
+        #self.client = create_client("keyboard")
+        #self.port = create_output_port(self.client)
+        #self.enter_daw_mode()
+        pass
 
     def shutdown(self):
-        self.leave_daw_mode()
+        #self.leave_daw_mode()
+        pass
 
     def enter_daw_mode(self):
         self.config = load_keyboards()

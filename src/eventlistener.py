@@ -24,13 +24,7 @@ class EventListener:
                 self.on_event(event, source_port)
     
     def on_event(self, event, source_port):
-        #print("Event in listener: " + repr(event) + " from " + repr(event.source))
         # TODO: load based on event source (midi port - keyboard)
         config = load_keyboards()
-        # TODO: check it is available
-        source_type = self.port_type_map[source_port.name]
+        source_type = self.port_type_map.get(source_port.name, "midi")
         self.dawInbox.append(MidiEvent(source_type, event))
-            
-def address_str(port):
-    # TODO: other input types?
-    return f"{port.client_id}:{port.port_id}"
