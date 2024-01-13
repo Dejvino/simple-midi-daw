@@ -25,7 +25,7 @@ class Synth(AppService):
             m = msg.event
             try:
                 self.on_midi(m)
-            except e:
+            except Exception as e:
                 print("Synth MIDI Oops: ", e)
         else:
             print("Unknown synth message: " + repr(msg))
@@ -33,6 +33,6 @@ class Synth(AppService):
     def on_midi(self, m):
         mtype = m.type
         if mtype == "note_on":
-            self.synth.noteon(chan=m.channel-1, key=m.note, vel=m.velocity)
+            self.synth.noteon(chan=m.channel, key=m.note, vel=m.velocity)
         elif mtype == "program_change":
-            self.synth.program_change(chan=m.channel-1, prg=m.program)
+            self.synth.program_change(chan=m.channel, prg=m.program)

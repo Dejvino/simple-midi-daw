@@ -35,7 +35,7 @@ def run_services():
         # ...app terminating.
     except KeyboardInterrupt:
         print("Keyboard interrupt.")
-    except e:
+    except Exception as e:
         print("Exception in main thread: ", e)
     finally:
         print("Exiting...")
@@ -59,7 +59,7 @@ def main():
     
     if args.standalone:
         import code
-        inbox = deque()
+        inbox = AppServiceInbox()
         match args.standalone:
             case "metronome":
                 service = Metronome(inbox)
