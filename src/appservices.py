@@ -10,14 +10,31 @@ class AppServices:
         self.aux_services = []
         self.aux_threads = []
 
-    def start_main_service(self, service):
+    def _prepare_to_run_main_service(self, service):
         assert self.running == False
         self.main_service = service
-        self.main_thread = wrap_runnable_in_thread(service)
-        self.main_thread.start()
         for aux_thread in self.aux_threads:
             aux_thread.start()
         self.running = True
+
+    # Usage 1: sync execution
+    def run_main_service(self, service):
+        self._prepare_to_run_main_service(service)
+        try:
+            service.run()
+        finally:
+            self.running = False
+
+    # Usage 2: async execution
+    def start_main_service(self, service):
+        self._prepare_to_run_main_service(service)
+        self.main_thread = wrap_runnable_in_thread(service)
+        self.main_thread.start()
+
+    def wait_for_main_service(self):
+        assert self.running == True
+        self.main_thread.join()
+        self.running = False
 
     def add_aux_service(self, service):
         self.aux_services.append(service)
@@ -25,11 +42,6 @@ class AppServices:
         self.aux_threads.append(thread)
         if self.running:
             thread.start()
-
-    def wait_for_main_service(self):
-        assert self.running == True
-        self.main_thread.join()
-        self.running = False
 
     def wait_for_aux_services(self):
         assert self.running == False

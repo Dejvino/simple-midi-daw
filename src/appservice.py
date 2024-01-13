@@ -1,4 +1,20 @@
-import time
+import queue
+
+class AppServiceInbox:
+    def __init__(self):
+        self.queue = queue.Queue()
+
+    # Queue interface:
+    def put(self, item):
+        self.queue.put(item)
+    def get(self):
+        return self.queue.get()
+
+    # deque interface:
+    def append(self, item):
+        self.put(item)
+    def popleft(self):
+        return self.get()
 
 class AppService:
     def __init__(self, inbox):
@@ -16,18 +32,17 @@ class AppService:
         self.inbox.append(msg)
 
     def check_inbox(self):
-        while self.inbox:
-            msg = self.inbox.popleft()
-            if (msg == "exit"):
-                self.active = False
-            else:
-                self.on_message(msg)
+        msg = self.inbox.popleft()
+        if (msg == "exit"):
+            self.active = False
+            return
+        else:
+            self.on_message(msg)
 
     def startup(self):
         pass
 
     def tick(self):
-        time.sleep(0.1)
         pass
         
     def on_message(self, msg):

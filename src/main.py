@@ -2,8 +2,8 @@ import sys, traceback
 import subprocess
 from threading import Thread
 import time
-from collections import deque
 
+from .appservice import AppServiceInbox
 from .appservices import AppServices, wrap_runnable_in_thread
 from .eventlistener import EventListener
 from .daw import Daw
@@ -16,17 +16,11 @@ def run_services():
     app_services = AppServices()
 
     # App starting...
-    dawInbox = deque()
-    synthInbox = deque()
-    metronomeInbox = deque()
-    playbackInbox = deque()
-    kbdInbox = deque()
-
-    eventListener = EventListener(dawInbox)
-    app_services.start_main_service(eventListener)
-    
-    # TODO: remove and fix waiting for init
-    time.sleep(1)
+    dawInbox = AppServiceInbox()
+    synthInbox = AppServiceInbox()
+    metronomeInbox = AppServiceInbox()
+    playbackInbox = AppServiceInbox()
+    kbdInbox = AppServiceInbox()
 
     app_services.add_aux_service(Daw(dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox))
     app_services.add_aux_service(Metronome(metronomeInbox))
@@ -34,11 +28,17 @@ def run_services():
     app_services.add_aux_service(MidiKeyboard(kbdInbox))
     app_services.add_aux_service(Synth(synthInbox))
 
+    eventListener = EventListener(dawInbox)
     try:
-        # ... app running ...
-        app_services.wait_for_main_service()
+        # app running:        
+        app_services.run_main_service(eventListener)
         # ...app terminating.
+    except KeyboardInterrupt:
+        print("Keyboard interrupt.")
+    except e:
+        print("Exception in main thread: ", e)
     finally:
+        print("Exiting...")
         app_services.send_aux_message("exit")
     
     app_services.wait_for_aux_services()
