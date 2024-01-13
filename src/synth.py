@@ -1,4 +1,4 @@
-
+import time
 import subprocess
 from threading import Thread
 import fluidsynth
@@ -15,7 +15,6 @@ class Synth(AppService):
         self.synth = fs
         fs.start()
         self.sfid = sfid = fs.sfload("default.sf2")
-        fs.program_select(0, sfid, 0, 0)
 
     def shutdown(self):
         self.synth.delete()

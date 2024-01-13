@@ -25,8 +25,8 @@ class AppService:
     def run(self):
         self.startup()
         while self.active:
-            self.check_inbox()
             self.tick()
+            self.check_inbox()
         self.shutdown()
 
     def deliver_message(self, msg):
@@ -39,7 +39,6 @@ class AppService:
             return
         if (isinstance(msg, str) and msg == "exit"):
             self.active = False
-            return
         else:
             self.on_message(msg)
 

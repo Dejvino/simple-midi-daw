@@ -1,5 +1,7 @@
 import sys, traceback
 import subprocess
+import time
+import threading
 from threading import Thread
 
 class AppServiceThread:
@@ -15,7 +17,7 @@ class AppServiceThread:
 
     def is_alive(self):
         return self.thread.is_alive()
-        
+
     def deliver_message(self, msg):
         self.service.deliver_message(msg)
 
@@ -31,7 +33,8 @@ class AppServices:
         assert self.running == False
         self.main_service = service
         for aux_thread in self.aux_threads:
-            aux_thread.start()
+            if not aux_thread.is_alive:
+                aux_thread.start()
         self.running = True
 
     # Usage 1: sync execution
@@ -55,12 +58,17 @@ class AppServices:
 
     def add_aux_service(self, service):
         self.aux_services.append(service)
-        self.aux_threads.append(AppServiceThread(service))
+        thread = AppServiceThread(service)
+        self.aux_threads.append(thread)
         if self.running:
             thread.start()
 
     def wait_for_aux_services(self):
         assert self.running == False
+        time.sleep(1)
+        for thread in threading.enumerate():
+            if (thread.name != "MainThread"):
+                print("Thread still running: ", thread.name)
         for aux_thread in self.aux_threads:
             aux_thread.join()
 
@@ -71,9 +79,11 @@ class AppServices:
 def wrap_runnable_in_thread(runnable):
     def wrapper():
         try:
-            print("Thread running")
+            print(runnable.__class__.__name__, "running.")
             runnable.run()
         except Exception as e:
             print("EXCEPTION: " + str(e))
             traceback.print_exc(file=sys.stdout)
-    return Thread(target=wrapper)
+        finally:
+            print(runnable.__class__.__name__, "exiting.")
+    return Thread(target=wrapper, name=f"wrapped({runnable.__class__.__name__})")
