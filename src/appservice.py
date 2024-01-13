@@ -7,8 +7,8 @@ class AppServiceInbox:
     # Queue interface:
     def put(self, item):
         self.queue.put(item)
-    def get(self):
-        return self.queue.get()
+    def get(self, block=True, timeout=None):
+        return self.queue.get(block, timeout)
 
     # deque interface:
     def append(self, item):
@@ -17,9 +17,10 @@ class AppServiceInbox:
         return self.get()
 
 class AppService:
-    def __init__(self, inbox):
+    def __init__(self, inbox, blocking=True):
         self.inbox = inbox
         self.active = True
+        self.blocking = blocking
 
     def run(self):
         self.startup()
@@ -32,7 +33,10 @@ class AppService:
         self.inbox.append(msg)
 
     def check_inbox(self):
-        msg = self.inbox.popleft()
+        try:
+            msg = self.inbox.get(self.blocking)
+        except queue.Empty:
+            return
         if (isinstance(msg, str) and msg == "exit"):
             self.active = False
             return

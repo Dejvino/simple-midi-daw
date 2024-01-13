@@ -2,6 +2,23 @@ import sys, traceback
 import subprocess
 from threading import Thread
 
+class AppServiceThread:
+    def __init__(self, service):
+        self.service = service
+        self.thread = wrap_runnable_in_thread(service)
+
+    def start(self):
+        self.thread.start()
+
+    def join(self):
+        self.thread.join()
+
+    def is_alive(self):
+        return self.thread.is_alive()
+        
+    def deliver_message(self, msg):
+        self.service.deliver_message(msg)
+
 class AppServices:
     def __init__(self):
         self.running = False
@@ -28,7 +45,7 @@ class AppServices:
     # Usage 2: async execution
     def start_main_service(self, service):
         self._prepare_to_run_main_service(service)
-        self.main_thread = wrap_runnable_in_thread(service)
+        self.main_thread = AppServiceThread(service)
         self.main_thread.start()
 
     def wait_for_main_service(self):
@@ -38,8 +55,7 @@ class AppServices:
 
     def add_aux_service(self, service):
         self.aux_services.append(service)
-        thread = wrap_runnable_in_thread(service)
-        self.aux_threads.append(thread)
+        self.aux_threads.append(AppServiceThread(service))
         if self.running:
             thread.start()
 
