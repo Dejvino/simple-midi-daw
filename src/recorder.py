@@ -47,6 +47,9 @@ class Recorder(AppService):
         self.record_stop()
 
     def record_start(self):
+        if self.recording == True:
+            print("Recorder already recording")
+            return
         self.recording = True
         self.midifile = mido.MidiFile(ticks_per_beat=self.ticks_per_beat)
         self.track = MidiTrack()
@@ -55,6 +58,9 @@ class Recorder(AppService):
         print("Record start: ", self.file)
 
     def record_stop(self):
+        if self.recording != True:
+            print("Recorder not recording yet")
+            return
         self.recording = False
         self.midifile.save(self.file)
         
