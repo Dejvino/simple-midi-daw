@@ -1,6 +1,6 @@
 from .appconfig import load_common, load_keyboards
 from .appservice import AppService
-from .eventlistener import MidiEvent
+from .midi import MidiEvent
 from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 
 class Daw(AppService):
@@ -28,11 +28,11 @@ class Daw(AppService):
         print(f"{msg.source_type}: " + repr(event))
         # TODO: load based on event source (midi port - keyboard)
         config = load_keyboards()
-        if False:
+        if event.type == "control_change":
             def is_key(config, event, keyname):
                 # TODO: check mapping exists
                 mapping = config['mapping.' + keyname]
-                return str(event.channel) == mapping['chan'] and str(event.param) == mapping['key']
+                return str(event.channel) == mapping['chan'] and str(event.control) == mapping['key']
             def is_key_pressed(config, event, keyname):
                 return is_key(config, event, keyname) and event.value > 60
             if (is_key_pressed(config, event, "click")):

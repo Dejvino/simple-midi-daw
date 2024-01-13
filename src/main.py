@@ -24,7 +24,7 @@ def run_services():
 
     app_services.add_aux_service(Daw(dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox))
     app_services.add_aux_service(Metronome(metronomeInbox))
-    app_services.add_aux_service(Playback(playbackInbox))
+    app_services.add_aux_service(Playback(playbackInbox, synthInbox))
     app_services.add_aux_service(MidiKeyboard(kbdInbox))
     app_services.add_aux_service(Synth(synthInbox))
 

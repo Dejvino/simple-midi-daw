@@ -1,11 +1,7 @@
 from . import midi_mido as midi
 from .appconfig import load_common, load_keyboards
+from .midi import MidiEvent
 
-class MidiEvent:
-    def __init__(self, source_type, event):
-        self.source_type = source_type
-        self.event = event
-        
 class EventListener:
     def __init__(self, dawInbox):
         self.dawInbox = dawInbox

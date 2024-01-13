@@ -4,7 +4,7 @@ from threading import Thread
 import fluidsynth
 
 from .appservice import AppService
-from .eventlistener import MidiEvent
+from .midi import MidiEvent
 
 class Synth(AppService):
     def __init__(self, inbox):
@@ -23,6 +23,16 @@ class Synth(AppService):
     def on_message(self, msg):
         if isinstance(msg, MidiEvent):
             m = msg.event
-            self.synth.noteon(chan=m.channel-1, key=m.note, vel=m.velocity)
+            try:
+                self.on_midi(m)
+            except e:
+                print("Synth MIDI Oops: ", e)
         else:
             print("Unknown synth message: " + repr(msg))
+
+    def on_midi(self, m):
+        mtype = m.type
+        if mtype == "note_on":
+            self.synth.noteon(chan=m.channel-1, key=m.note, vel=m.velocity)
+        elif mtype == "program_change":
+            self.synth.program_change(chan=m.channel-1, prg=m.program)

@@ -24,6 +24,7 @@ class MidiKeyboard(AppService):
         super().__init__(inbox)
     
     def startup(self):
+        self.config = load_keyboards()
         #self.client = create_client("keyboard")
         #self.port = create_output_port(self.client)
         #self.enter_daw_mode()
@@ -34,7 +35,6 @@ class MidiKeyboard(AppService):
         pass
 
     def enter_daw_mode(self):
-        self.config = load_keyboards()
         daw_enable = self.config['daw.enable']
         kbd_port = find_keyboard_port(port_type='daw')
         self.port.connect_to(kbd_port)
@@ -48,7 +48,8 @@ class MidiKeyboard(AppService):
     def on_message(self, msg):
         # TODO: switch msg type
         print("Message in Keyboard: " + repr(msg))
-        if (isinstance(msg, KbdOperation)):
+        # TODO: re-enable
+        if (False and isinstance(msg, KbdOperation)):
             if (isinstance(msg, KbdColorOp)):
                 if msg.surface_type == "session":
                     self.send_color_to_session_pad(msg.color, msg.color_mode, msg.surface_index)

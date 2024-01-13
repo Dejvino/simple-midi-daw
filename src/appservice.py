@@ -33,7 +33,7 @@ class AppService:
 
     def check_inbox(self):
         msg = self.inbox.popleft()
-        if (msg == "exit"):
+        if (isinstance(msg, str) and msg == "exit"):
             self.active = False
             return
         else:
