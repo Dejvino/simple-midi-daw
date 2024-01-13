@@ -46,6 +46,5 @@ and starts listening for MIDI commands (e.g. Record).
 - Python3
 - [MIDO](https://github.com/mido/mido/) MIDI Objects python library, defaulting to the [RtMidi backend](https://mido.readthedocs.io/en/stable/backends/rtmidi.html)
 - FluidSynth software synthesizer
-- [pyFluidSynth](https://github.com/nwhitehead/pyfluidsynth) python bindings library
 - some SoundFont2 file of your choice
 

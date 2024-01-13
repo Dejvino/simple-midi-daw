@@ -33,7 +33,7 @@ class AppServices:
         assert self.running == False
         self.main_service = service
         for aux_thread in self.aux_threads:
-            if not aux_thread.is_alive:
+            if not aux_thread.is_alive():
                 aux_thread.start()
         self.running = True
 
