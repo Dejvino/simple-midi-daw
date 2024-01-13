@@ -24,8 +24,6 @@ class Playback(AppService):
         print("Message in playback: " + repr(msg))
         if (msg == "play"):
             self.on_play()
-        elif (msg == "record"):
-            self.on_record()
         elif (msg == "stop"):
             self.on_stop()
         elif (msg == "loop"):
@@ -50,34 +48,6 @@ class Playback(AppService):
             self.play_thread.join()
             self.play_thread = None
 
-    def on_record(self):
-        print("Playback: REC")
-        import random
-        import sys
-
-        from mido import MAX_PITCHWHEEL, Message, MidiFile, MidiTrack
-
-        notes = [64, 64 + 7, 64 + 12]
-
-        outfile = MidiFile()
-
-        track = MidiTrack()
-        outfile.tracks.append(track)
-
-        track.append(Message('program_change', program=12))
-
-        delta = 300
-        ticks_per_expr = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-        for i in range(4):
-            note = random.choice(notes)
-            track.append(Message('note_on', note=note, velocity=100, time=delta))
-            for j in range(delta // ticks_per_expr):
-                pitch = MAX_PITCHWHEEL * j * ticks_per_expr // delta
-                track.append(Message('pitchwheel', pitch=pitch, time=ticks_per_expr))
-            track.append(Message('note_off', note=note, velocity=100, time=0))
-
-        outfile.save(self.file)
-
     def on_loop(self):
         print("Playback: LOOP")
 
@@ -101,10 +71,8 @@ class PlayerService(AppService):
         self.playerInbox.put("play_done")
          
     def tick(self):
-        print("NOTE")
         try:
             message = next(self.play)
-            print("... ", repr(message))
             self.synthInbox.put(MidiEvent("midi", message))
         except StopIteration:
             self.inbox.put("exit")

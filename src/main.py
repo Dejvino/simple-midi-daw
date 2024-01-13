@@ -9,6 +9,7 @@ from .eventlistener import EventListener
 from .daw import Daw
 from .metronome import Metronome
 from .playback import Playback
+from .recorder import Recorder
 from .midikeyboard import MidiKeyboard
 from .synth import Synth
 
@@ -20,11 +21,13 @@ def run_services():
     synthInbox = AppServiceInbox()
     metronomeInbox = AppServiceInbox()
     playbackInbox = AppServiceInbox()
+    recorderInbox = AppServiceInbox()
     kbdInbox = AppServiceInbox()
 
-    app_services.add_aux_service(Daw(dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox))
+    app_services.add_aux_service(Daw(dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox, recorderInbox))
     app_services.add_aux_service(Metronome(metronomeInbox))
     app_services.add_aux_service(Playback(playbackInbox, synthInbox))
+    app_services.add_aux_service(Recorder(recorderInbox))
     app_services.add_aux_service(MidiKeyboard(kbdInbox))
     app_services.add_aux_service(Synth(synthInbox))
 

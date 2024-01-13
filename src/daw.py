@@ -4,12 +4,13 @@ from .midi import MidiEvent
 from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 
 class Daw(AppService):
-    def __init__(self, dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox):
+    def __init__(self, dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox, recorderInbox):
         super().__init__(dawInbox)
         self.kbdInbox = kbdInbox
         self.synthInbox = synthInbox
         self.metronomeInbox = metronomeInbox
         self.playbackInbox = playbackInbox
+        self.recorderInbox = recorderInbox
 
     def startup(self):
         pass
@@ -45,11 +46,12 @@ class Daw(AppService):
                 self.kbdInbox.append(KbdDisplayTextOp("PLAY"))
             elif (is_key_pressed(config, event, "stop")):
                 self.playbackInbox.append("stop")
+                self.recorderInbox.append("stop")
                 # TODO: remove demo
                 self.kbdInbox.append(KbdColorOp("session", 0, 10, 0))
                 self.kbdInbox.append(KbdDisplayTextOp())
             elif (is_key_pressed(config, event, "record")):
-                self.playbackInbox.append("record")
+                self.recorderInbox.append("record")
                 # TODO: remove demo
                 self.kbdInbox.append(KbdColorOp("session", 0, 106, 0))
                 self.kbdInbox.append(KbdColorOp("session", 0, 72, 1))
@@ -62,3 +64,4 @@ class Daw(AppService):
                 self.kbdInbox.append(KbdDisplayTextOp("LOOP"))
         if msg.source_type == "midi":
             self.synthInbox.append(msg)
+            self.recorderInbox.append(msg)
