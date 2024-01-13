@@ -39,7 +39,7 @@
 
 > Going beyond a simple Plug & Play MIDI Synthesizer.
 
-- [ ] Gappless MIDI playback of loops
+- [x] Gappless MIDI playback of loops
 - [ ] Record and play MIDI clips (bank of buttons)
 - [ ] Record the whole session (keybeard ayd clips) into MIDI file
 - [ ] Configurable Faders/Pots mapping

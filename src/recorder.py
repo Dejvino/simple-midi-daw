@@ -51,7 +51,6 @@ class Recorder(AppService):
         self.midifile = mido.MidiFile(ticks_per_beat=self.ticks_per_beat)
         self.track = MidiTrack()
         self.midifile.tracks.append(self.track)
-        self.track.append(Message('program_change', program=12))
         self.timer_diff()
         print("Record start: ", self.file)
 

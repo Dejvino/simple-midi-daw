@@ -37,9 +37,7 @@ connects any known MIDI keyboard to it
 and starts listening for MIDI commands (e.g. Record).
 
 ## Known issues
-- Looping of MIDI has a noticable gap due to the use of `aplaymidi`
 - Plugging in a MIDI keyboard at runtime doesn't work
-- Sometimes a MIDI buffer overflows, crashing the app
 
 ## Dependencies
 
