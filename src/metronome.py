@@ -2,7 +2,6 @@ import time
 import mido
 from .appconfig import load_common
 from .appservice import AppService
-from . import midi_mido as midi
 from .midi import MidiEvent
 
 class Metronome(AppService):

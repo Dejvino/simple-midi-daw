@@ -1,4 +1,4 @@
-from .midi_mido import create_client, create_output_port, find_keyboard_port, send_note_on, send_note_off, send_sysex
+from .midi import MidiClient, find_keyboard_port
 from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 
@@ -25,31 +25,27 @@ class MidiKeyboard(AppService):
     
     def startup(self):
         self.config = load_keyboards()
-        #self.client = create_client("keyboard")
-        #self.port = create_output_port(self.client)
-        #self.enter_daw_mode()
-        pass
+        self.client = MidiClient("keyboard")
+        kbd_port = find_keyboard_port(port_type='daw')
+        self.port = self.client.create_output_port(kbd_port)
+        self.enter_daw_mode()
 
     def shutdown(self):
-        #self.leave_daw_mode()
-        pass
+        self.leave_daw_mode()
 
     def enter_daw_mode(self):
-        daw_enable = self.config['daw.enable']
-        kbd_port = find_keyboard_port(port_type='daw')
-        self.port.connect_to(kbd_port)
-        send_note_on(self.client, daw_enable['chan'], daw_enable['key'], daw_enable['val'])
+        cfg = self.config['daw.enable']
+        self.client.send_note_on(int(cfg['chan']), int(cfg['key']), int(cfg['val']))
 
     def leave_daw_mode(self):
-        daw_disable = self.config['daw.disable']
-        send_note_on(self.client, 0, 112, 0)
-        send_note_on(self.client, daw_disable['chan'], daw_disable['key'], daw_disable['val'])
+        self.client.send_note_on(0, 112, 0)
+        cfg = self.config['daw.disable']
+        self.client.send_note_on(int(cfg['chan']), int(cfg['key']), int(cfg['val']))
 
     def on_message(self, msg):
         # TODO: switch msg type
-        print("Message in Keyboard: " + repr(msg))
-        # TODO: re-enable
-        if (False and isinstance(msg, KbdOperation)):
+        #print("Message in Keyboard: " + repr(msg))
+        if (isinstance(msg, KbdOperation)):
             if (isinstance(msg, KbdColorOp)):
                 if msg.surface_type == "session":
                     self.send_color_to_session_pad(msg.color, msg.color_mode, msg.surface_index)
@@ -63,15 +59,15 @@ class MidiKeyboard(AppService):
     def send_color_to_session_pad(self, color, mode, index):
         # TODO: check it exists
         config = self.config['daw.surfaces.session.' + str(index)]
-        self.send_color_to_surface(color, mode, config['index'])
+        self.send_color_to_surface(color, mode, int(config['index']))
 
     def send_color_to_drum_pad(self, color, mode, index):
         # TODO: check it exists
         config = self.config['daw.surfaces.drum.' + str(index)]
-        self.send_color_to_surface(color, mode, config['index'])
+        self.send_color_to_surface(color, mode, int(config['index']))
 
     def send_color_to_surface(self, color, mode, surface):
-        send_note_on(self.client, mode, surface, color)
+        self.client.send_note_on(mode, surface, color)
 
     def _send_display_text_row(self, msg, row):
         # TODO: check it exists
@@ -88,13 +84,13 @@ class MidiKeyboard(AppService):
         }
         # TODO: check it exists
         sysex = build_sysex_message(self.config['daw.display.set'], params)
-        send_sysex(self.client, sysex)
+        self.client.send_sysex(sysex)
 
     def _send_display_text_clear(self):
         params = {}
         # TODO: check it exists
         sysex = build_sysex_message(self.config['daw.display.clear'], params)
-        send_sysex(self.client, sysex)
+        self.client.send_sysex(sysex)
 
     def send_display_text(self, msg):
         if msg == None:

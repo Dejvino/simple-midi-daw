@@ -1,22 +1,21 @@
-from . import midi_mido as midi
 from .appconfig import load_common, load_keyboards
-from .midi import MidiEvent
+from .midi import MidiEvent, MidiClient, for_every_keyboard
 
 class EventListener:
     def __init__(self, dawInbox):
         self.dawInbox = dawInbox
 
     def run(self):    
-        client = midi.create_client("listener")
-        port = midi.create_input_port(client)
+        client = MidiClient("listener")
+        port = client.create_input_port()
         self.port_type_map = {}
         for port_type in ["midi", "daw"]:
             def register_keyboard(kbd_port):
-                midi.connect_to_output_port(client, kbd_port)
+                client.connect_to_output_port(kbd_port)
                 self.port_type_map[kbd_port] = port_type
-            midi.for_every_keyboard(register_keyboard, port_type)
+            for_every_keyboard(register_keyboard, port_type)
         while True:
-            for source_port, event in midi.read_events(client):
+            for source_port, event in client.read_events():
                 self.on_event(event, source_port)
     
     def on_event(self, event, source_port):
