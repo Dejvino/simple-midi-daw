@@ -29,7 +29,7 @@ class Daw(AppService):
 
     def on_midi_event(self, msg):
         event = msg.event
-        print(f"{msg.source_type}: " + repr(event))
+        #print(f"{msg.source_type}: " + repr(event))
         # TODO: load based on event source (midi port - keyboard)
         config = load_keyboards()
         if event.type == "control_change":
