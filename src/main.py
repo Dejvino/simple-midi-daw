@@ -25,7 +25,7 @@ def run_services():
     kbdInbox = AppServiceInbox()
 
     app_services.add_aux_service(Daw(dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox, recorderInbox))
-    app_services.add_aux_service(Metronome(metronomeInbox, synthInbox))
+    app_services.add_aux_service(Metronome(metronomeInbox, synthInbox, dawInbox))
     app_services.add_aux_service(Playback(playbackInbox, synthInbox))
     app_services.add_aux_service(Recorder(recorderInbox))
     app_services.add_aux_service(MidiKeyboard(kbdInbox))

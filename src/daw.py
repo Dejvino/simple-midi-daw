@@ -2,6 +2,7 @@ from .appconfig import load_common, load_keyboards
 from .appservice import AppService
 from .midi import MidiEvent
 from .midikeyboard import KbdColorOp, KbdDisplayTextOp
+from .metronome import MetronomeTick
 
 class Daw(AppService):
     def __init__(self, dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox, recorderInbox):
@@ -21,6 +22,8 @@ class Daw(AppService):
     def on_message(self, msg):
         if (isinstance(msg, MidiEvent)):
             self.on_midi_event(msg)
+        elif isinstance(msg, MetronomeTick):
+            self.on_metronome_tick(msg)
         else:
             print("Message in DAW not processed: " + repr(msg))
 
@@ -65,3 +68,8 @@ class Daw(AppService):
         if msg.source_type == "midi":
             self.synthInbox.append(msg)
             self.recorderInbox.append(msg)
+
+    def on_metronome_tick(self, msg):
+        self.playbackInbox.put(msg)
+        self.recorderInbox.put(msg)
+        self.kbdInbox.put(msg)

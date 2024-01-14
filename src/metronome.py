@@ -4,10 +4,18 @@ from .appconfig import load_common
 from .appservice import AppService
 from .midi import MidiEvent
 
+class MetronomeTick:
+    def __init__(self, current_beat, beats, measure):
+        self.timestamp = time.time()
+        self.current_beat = current_beat
+        self.beats = beats,
+        self.masure = measure
+
 class Metronome(AppService):
-    def __init__(self, inbox, synthInbox):
+    def __init__(self, inbox, synthInbox, dawInbox):
         super().__init__(inbox, blocking=False)
         self.synthInbox = synthInbox
+        self.dawInbox = dawInbox
 
     def startup(self):
         self.config = config = load_common()['metronome']
@@ -31,6 +39,7 @@ class Metronome(AppService):
             #print("Tick {}/{}".format(self.current_beat+1, beat_time_measure))
             wait = 60 / bpm
             try:
+                self.dawInbox.put(MetronomeTick(self.current_beat, beat_time_beats, beat_time_measure))
                 if self.current_beat == 0:
                     self.send_note(channel, beat_primary_note, beat_primary_velocity, wait)
                 else:
@@ -47,6 +56,7 @@ class Metronome(AppService):
         print("Message in metronome: " + repr(msg))
         # TODO: other messages?
         self.enabled = not self.enabled
+        self.current_beat = 0
 
     def send_note(self, channel, note, velocity, wait):
         self.synthInbox.put(MidiEvent("midi", mido.Message("note_on", note=note, channel=channel, velocity=velocity)))

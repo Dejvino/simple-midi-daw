@@ -1,6 +1,7 @@
 from .midi import MidiClient, find_keyboard_port
 from .appconfig import load_common, load_keyboards
 from .appservice import AppService
+from .metronome import MetronomeTick
 
 class KbdOperation:
     def __init__(self, operation):
@@ -55,6 +56,16 @@ class MidiKeyboard(AppService):
                     print("Unknown surface type " + msg.surface_type)
             elif (isinstance(msg, KbdDisplayTextOp)):
                 self.send_display_text(msg.message)
+        if isinstance(msg, MetronomeTick):
+            #print("TICK", int(msg.current_beat))
+            # TODO: config?
+            if msg.current_beat == 0:
+                beat_color = 37
+            elif msg.current_beat % 2 == 0:
+                beat_color = 118
+            else:
+                beat_color = 117
+            self.send_color_to_session_pad(beat_color, 0, 7)
 
     def send_color_to_session_pad(self, color, mode, index):
         # TODO: check it exists
