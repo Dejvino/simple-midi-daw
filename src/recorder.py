@@ -61,6 +61,7 @@ class Recorder(AppService):
         if self.recording != True:
             print("Recorder not recording yet")
             return
+        self.record_midi_event(mido.MetaMessage("end_of_track"))
         self.recording = False
         self.midifile.save(self.file)
         
