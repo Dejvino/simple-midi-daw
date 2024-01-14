@@ -1,6 +1,7 @@
 import subprocess
 from threading import Thread
 import mido
+import traceback, sys
 
 from .appservice import AppService, AppServiceInbox
 from .appservices import AppServiceThread
@@ -79,9 +80,16 @@ class PlayerService(AppService):
         self.playerInbox = playerInbox
         self.paused = True
         self.loop = loop
+        self.ticks_per_beat = 480
+        self.just_ticked = False
 
     def startup(self):
-        self.midifile = mido.MidiFile(self.file)
+        try:
+            self.midifile = mido.MidiFile(self.file, ticks_per_beat=self.ticks_per_beat)
+        except Exception as e:
+            print("Player error:", str(e))
+            traceback.print_exc(file=sys.stdout)
+            self.inbox.put("exit")
 
     def shutdown(self):
         print("Playback done: ", self.file)
@@ -95,12 +103,17 @@ class PlayerService(AppService):
             self.synthInbox.put(MidiEvent("midi", message))
         except StopIteration:
             if self.loop:
-                self.paused = True
+                if (self.just_ticked):
+                    self.play_start()
+                else:
+                    self.paused = True
             else:
                 self.inbox.put("exit")
+        self.just_ticked = False
 
     def on_message(self, msg):
         if msg == "play_if_paused":
+            self.just_ticked = True
             self.play_if_paused()
         
     def play_if_paused(self):
