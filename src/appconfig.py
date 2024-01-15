@@ -1,6 +1,7 @@
 import configparser
 import threading
 
+
 local = threading.local()
 
 def load_common():
@@ -29,3 +30,27 @@ def load_keyboards():
     #print("Configs loaded.")
     local.kbd_cache = config
     return config
+
+
+# TODO: cleanup, remove from here:
+import mido
+from .midi import MidiClient
+
+def find_every_keyboard_port(port_type='midi'):
+    keyboardCfg = load_keyboards()
+    keyboardClientName = keyboardCfg['description']['client_name']
+    keyboardPortName = keyboardCfg['description']['client_port_' + port_type + '_name']
+    client = MidiClient("keyboard")
+    inPorts = mido.get_input_names()
+    for port in inPorts:
+        if port.find(keyboardClientName) != -1 and port.find(keyboardPortName) != -1:
+            yield port
+
+def find_keyboard_port(port_type='midi'):
+    keyboards = list(find_every_keyboard_port(port_type))
+    assert len(keyboards) > 0
+    return keyboards[0]
+
+def for_every_keyboard(fn, port_type='midi'):
+    for port in find_every_keyboard_port(port_type):
+        fn(port)

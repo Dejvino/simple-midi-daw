@@ -6,6 +6,7 @@ import sys
 import time
 from mido import MAX_PITCHWHEEL, Message, MidiFile, MidiTrack
 
+from .midi import ActiveNotesTracker
 from .appservice import AppService, AppServiceInbox
 from .appservices import AppServiceThread
 from .midi import MidiEvent
@@ -71,8 +72,7 @@ class Recorder(AppService):
         if self.active_notes_tracker != None:
             active_notes = self.active_notes_tracker.get_active_notes()
             for note in active_notes:
-                note_on = active_notes[note]
-                self.record_midi_event(note_on)
+                self.record_midi_event(active_notes[note])
         print("Record start: ", self.file)
 
     def record_stop(self):
@@ -81,11 +81,9 @@ class Recorder(AppService):
             print("Recorder not recording yet")
             return
         if self.active_notes_tracker != None:
-            active_notes = self.active_notes_tracker.get_active_notes()
-            for note in active_notes:
-                note_on = active_notes[note]
-                note_off = mido.Message("note_off", channel=note_on.channel, note=note_on.note)
-                self.record_midi_event(note_off)
+            note_offs = self.active_notes_tracker.get_note_offs()
+            for note in note_offs:
+                self.record_midi_event(note_offs[note])
             self.active_notes_tracker = None
         self.record_midi_event(mido.MetaMessage("end_of_track"))
         self.recording = False
@@ -106,16 +104,3 @@ class Recorder(AppService):
         timer_last = self.timer_last
         self.timer_last = timer_now
         return timer_now - timer_last
-
-class ActiveNotesTracker:
-    def __init__(self):
-        self.notes={}
-
-    def consume_midi_event(self, event):
-        if event.note in self.notes:
-            del self.notes[event.note]
-        else:
-            self.notes[event.note] = event
-
-    def get_active_notes(self):
-        return self.notes

@@ -1,5 +1,5 @@
-from .appconfig import load_common, load_keyboards
-from .midi import MidiEvent, MidiClient, for_every_keyboard
+from .appconfig import load_common, load_keyboards, for_every_keyboard
+from .midi import MidiEvent, MidiClient
 
 class EventListener:
     def __init__(self, dawInbox):

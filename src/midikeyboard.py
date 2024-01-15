@@ -1,5 +1,5 @@
-from .midi import MidiClient, find_keyboard_port
-from .appconfig import load_common, load_keyboards
+from .midi import MidiClient
+from .appconfig import load_common, load_keyboards, find_keyboard_port
 from .appservice import AppService
 from .metronome import MetronomeTick
 

@@ -1,14 +1,5 @@
-import subprocess
-from threading import Thread
 import time
 import mido
-
-from .appconfig import load_keyboards
-
-class MidiEvent:
-    def __init__(self, source_type, event):
-        self.source_type = source_type
-        self.event = event
 
 class MidiClient:
     def __init__(self, suffix):
@@ -60,22 +51,3 @@ class MidiClient:
         port = mido.open_ioport("midiInOut")
         self.add_port(port)
         return port
-
-def find_every_keyboard_port(port_type='midi'):
-    keyboardCfg = load_keyboards()
-    keyboardClientName = keyboardCfg['description']['client_name']
-    keyboardPortName = keyboardCfg['description']['client_port_' + port_type + '_name']
-    client = MidiClient("keyboard")
-    inPorts = mido.get_input_names()
-    for port in inPorts:
-        if port.find(keyboardClientName) != -1 and port.find(keyboardPortName) != -1:
-            yield port
-
-def find_keyboard_port(port_type='midi'):
-    keyboards = list(find_every_keyboard_port(port_type))
-    assert len(keyboards) > 0
-    return keyboards[0]
-
-def for_every_keyboard(fn, port_type='midi'):
-    for port in find_every_keyboard_port(port_type):
-        fn(port)
