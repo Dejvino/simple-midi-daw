@@ -5,7 +5,7 @@ import traceback, sys
 
 from .appservice import AppService, AppServiceInbox
 from .appservices import AppServiceThread
-from .midi import MidiEvent
+from .midi import MidiEvent, ActiveNotesTracker
 from .metronome import MetronomeTick
 
 class Playback(AppService):
@@ -82,6 +82,7 @@ class PlayerService(AppService):
         self.loop = loop
         self.ticks_per_beat = 480
         self.just_ticked = False
+        self.active_notes_tracker = None
 
     def startup(self):
         try:
@@ -92,6 +93,7 @@ class PlayerService(AppService):
             self.inbox.put("exit")
 
     def shutdown(self):
+        self.play_stop()
         print("Playback done: ", self.file)
         self.playerInbox.put("play_done")
          
@@ -100,14 +102,16 @@ class PlayerService(AppService):
             return
         try:
             message = next(self.play)
+            self.active_notes_tracker.consume_midi_event(message)
             self.synthInbox.put(MidiEvent("midi", message))
         except StopIteration:
             if self.loop:
                 if (self.just_ticked):
                     self.play_start()
                 else:
-                    self.paused = True
+                    self.play_stop()
             else:
+                self.play_stop()
                 self.inbox.put("exit")
         self.just_ticked = False
 
@@ -124,4 +128,13 @@ class PlayerService(AppService):
 
     def play_start(self):
         self.paused = False
+        self.active_notes_tracker = ActiveNotesTracker()
         self.play = self.midifile.play()
+
+    def play_stop(self):
+        self.paused = True
+        if self.active_notes_tracker != None:
+            note_offs = self.active_notes_tracker.get_note_offs()
+            for note in note_offs:
+                self.synthInbox.put(MidiEvent("midi", note_offs[note]))
+            self.active_notes_tracker = None
