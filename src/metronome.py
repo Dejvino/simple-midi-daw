@@ -37,7 +37,7 @@ class Metronome(AppService):
 
         self.dawInbox.put(MetronomeTick(self.current_beat, beat_time_beats, beat_time_measure))
         if self.enabled:
-            #print("Tick {}/{}".format(self.current_beat+1, beat_time_measure))
+            print("Tick {}/{}".format(self.current_beat+1, beat_time_measure))
             try:
                 if self.current_beat == 0:
                     self.send_note(channel, beat_primary_note, beat_primary_velocity, wait)

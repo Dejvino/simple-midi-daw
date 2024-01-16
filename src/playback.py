@@ -13,7 +13,8 @@ class Playback(AppService):
         super().__init__(inbox)
         self.synthInbox = synthInbox
         self.file = "recording.mid"
-        self.play_thread = None
+        self.play_threads = []
+        self.looping = False
 
     def startup(self):
         pass
@@ -34,14 +35,14 @@ class Playback(AppService):
             elif (msg == "loop"):
                 self.on_loop()
             elif (msg == "play_done"):
-                if self.play_thread != None and not self.play_thread.is_alive():
-                    self.play_thread.join()
-                    self.play_thread = None
+                self.on_thread_done()
+                    
             else:
                 print("Unknown playback message: " + repr(msg))
         elif isinstance(msg, MetronomeTick):
-            if msg.current_beat == 0 and self.play_thread != None:
-                self.play_thread.service.inbox.put("play_if_paused")
+            if msg.current_beat == 0:
+                for thread in self.play_threads:
+                    thread.service.inbox.put("play_if_paused")
                 
         else:
             print("Unknown playback message: " + repr(msg))
@@ -55,22 +56,34 @@ class Playback(AppService):
         self.try_play_thread_stop()
 
     def on_loop(self):
-        print("Playback: LOOP")
-        self.start_play_thread(loop=True)
+        self.looping = not self.looping
+        print("Playback: LOOP", self.looping)
+        if self.looping:
+            self.start_play_thread(loop=True)
+
+    def on_thread_done(self):
+        done_threads = []
+        for thread in self.play_threads:
+            if not thread.is_alive():
+                thread.join()
+                done_threads.append(thread)
+        for done_thread in done_threads:
+            self.play_threads.remove(done_thread)
 
     def try_play_thread_stop(self):
-        if self.play_thread != None:
-            self.play_thread.deliver_message("exit")
-            self.play_thread.join()
-            self.play_thread = None
+        for thread in self.play_threads:
+            print("Playback stopping player.")
+            thread.deliver_message("exit")
+        for thread in self.play_threads:
+            thread.join()
+            print("Playback player finished.")
+        self.play_threads = []
 
     def start_play_thread(self, loop=False):
-        if self.play_thread == None:
-            self.play_thread = AppServiceThread(PlayerService(AppServiceInbox(), self.file, self.synthInbox, self.inbox, loop=loop))
-            self.play_thread.start()
-
-    # TODO: add somethere, e.g. Undo?
-    #send_panic_event_to_synth()
+        # TODO: limit to one thread per measure
+        thread = AppServiceThread(PlayerService(AppServiceInbox(), self.file, self.synthInbox, self.inbox, loop=loop))
+        thread.start()
+        self.play_threads.append(thread)
 
 class PlayerService(AppService):
     def __init__(self, inbox, file, synthInbox, playerInbox, loop=False):
@@ -81,7 +94,6 @@ class PlayerService(AppService):
         self.paused = True
         self.loop = loop
         self.ticks_per_beat = 480
-        self.just_ticked = False
         self.active_notes_tracker = None
 
     def startup(self):
@@ -106,30 +118,27 @@ class PlayerService(AppService):
             self.synthInbox.put(MidiEvent("midi", message))
         except StopIteration:
             if self.loop:
-                if (self.just_ticked):
-                    self.play_start()
-                else:
-                    self.play_stop()
+                self.play_stop()
+                print("Player finished. Looping, waiting.")
             else:
                 self.play_stop()
-                self.inbox.put("exit")
-        self.just_ticked = False
+                print("Player finished. Stopping.")
+                self.active = False
 
     def on_message(self, msg):
         if msg == "play_if_paused":
-            self.just_ticked = True
             self.play_if_paused()
         
     def play_if_paused(self):
-        if not self.paused:
+        if not (self.paused and self.active):
             return
         self.play_start()
-        print("Playback start: ", self.file)
 
     def play_start(self):
         self.paused = False
         self.active_notes_tracker = ActiveNotesTracker()
         self.play = self.midifile.play()
+        print("Playback start: ", self.file)
 
     def play_stop(self):
         self.paused = True
