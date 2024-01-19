@@ -1,3 +1,4 @@
+import time
 import subprocess
 from threading import Thread
 import mido
@@ -95,10 +96,16 @@ class PlayerService(AppService):
         self.loop = loop
         self.ticks_per_beat = 480
         self.active_notes_tracker = None
+        self.next_note = None
+        self.next_note_time = time.time()
+        self.play_started = None
+        self.play_ending = None
+        self.play_length = None
 
     def startup(self):
         try:
             self.midifile = mido.MidiFile(self.file, ticks_per_beat=self.ticks_per_beat)
+            self.play_length = self.midifile.length
         except Exception as e:
             print("Player error:", str(e))
             traceback.print_exc(file=sys.stdout)
@@ -112,10 +119,19 @@ class PlayerService(AppService):
     def tick(self):
         if self.paused:
             return
+        # TODO: tolerance?
+        if time.time() + 0.1 < self.next_note_time:
+            return
         try:
-            message = next(self.play)
-            self.active_notes_tracker.consume_midi_event(message)
-            self.synthInbox.put(MidiEvent("midi", message))
+            timeout = 0
+            message = self.next_note
+            while timeout == 0:
+                if message and not isinstance(message, mido.MetaMessage):
+                    self.active_notes_tracker.consume_midi_event(message)
+                    self.synthInbox.put(MidiEvent("midi", message))
+                self.next_note_time, message = next(self.play)
+                timeout = message.time
+            self.next_note = message
         except StopIteration:
             if self.loop:
                 self.play_stop()
@@ -130,15 +146,22 @@ class PlayerService(AppService):
             self.play_if_paused()
         
     def play_if_paused(self):
+        time_now = time.time()
+        # TODO: tolerance?
+        if self.loop and self.play_ending and self.play_ending - time_now < 1:
+            print("Player looping time!")
+            self.play_stop()
         if not (self.paused and self.active):
             return
         self.play_start()
 
     def play_start(self):
         self.paused = False
+        self.play_started = time.time()
+        self.play_ending = self.play_started + self.play_length
         self.active_notes_tracker = ActiveNotesTracker()
-        self.play = self.midifile.play()
-        print("Playback start: ", self.file)
+        self.play = self.play_midi()
+        print("Player playback start: ", self.file)
 
     def play_stop(self):
         self.paused = True
@@ -147,3 +170,12 @@ class PlayerService(AppService):
             for note in note_offs:
                 self.synthInbox.put(MidiEvent("midi", note_offs[note]))
             self.active_notes_tracker = None
+
+    def play_midi(self):
+        now=time.time
+        start_time = now()
+        input_time = 0.0
+
+        for msg in self.midifile:
+            input_time += msg.time
+            yield start_time + input_time, msg
