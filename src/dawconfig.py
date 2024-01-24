@@ -37,16 +37,20 @@ class DawConfig:
     def is_surface(self, event, surface):
         return self.is_event_matching_config(event, 'daw.surfaces.' + surface)
 
+    def get_all_surfaces(self, surface_types=["session"]):
+        cfg = self.config
+        for surface_type in surface_types:
+            width = int(cfg['daw.surfaces.' + surface_type]['width'])
+            rows = int(cfg['daw.surfaces.' + surface_type]['rows'])
+            for index in range(0, width*rows):
+                surface = surface_type + '.' + str(index)
+                yield surface
+
     def get_event_surface(self, event):
         cfg = self.config
-        # TODO: drums?
-        width = int(cfg['daw.surfaces.session']['width'])
-        rows = int(cfg['daw.surfaces.session']['rows'])
-        for prefix in ["session"]:
-            for index in range(0, width*rows):
-                surface = prefix + '.' + str(index)
-                if self.is_surface(event, surface):
-                    return surface
+        for surface in self.get_all_surfaces():
+            if self.is_surface(event, surface):
+                return surface
         return None
 
     def get_surface_config(self, surface):
@@ -58,3 +62,9 @@ class DawConfig:
             return surface_config['function']
         else:
             return default
+
+    def get_surfaces_matching(self, key, value):
+        for surface in self.get_all_surfaces():
+            surface_config = self.get_surface_config(surface)
+            if key in surface_config and surface_config[key] == value:
+                yield surface

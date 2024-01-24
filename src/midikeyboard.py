@@ -49,12 +49,7 @@ class MidiKeyboard(AppService):
         #print("Message in Keyboard: " + repr(msg))
         if (isinstance(msg, KbdOperation)):
             if (isinstance(msg, KbdColorOp)):
-                if msg.surface_type == "session":
-                    self.send_color_to_session_pad(msg.color, msg.color_mode, msg.surface_index)
-                elif msg.surface_type == "drum":
-                    self.send_color_to_drum_pad(msg.color, msg.color_mode, msg.surface_index)
-                else:
-                    print("Unknown surface type " + msg.surface_type)
+                self.send_color_to_surface(msg.color, msg.color_mode, surface_type + '.' + msg.surface_index)
             elif (isinstance(msg, KbdDisplayTextOp)):
                 self.send_display_text(msg.message)
         if isinstance(msg, MetronomeTick):
@@ -66,20 +61,12 @@ class MidiKeyboard(AppService):
                 beat_color = 118
             else:
                 beat_color = 117
-            self.send_color_to_session_pad(beat_color, 0, 7)
-
-    def send_color_to_session_pad(self, color, mode, index):
-        # TODO: check it exists
-        config = self.config.get_surface_config('session.' + str(index))
-        self.send_color_to_surface(color, mode, int(config['index']))
-
-    def send_color_to_drum_pad(self, color, mode, index):
-        # TODO: check it exists
-        config = self.config.get_surface_config('drum.' + str(index))
-        self.send_color_to_surface(color, mode, int(config['index']))
+            for surface in self.config.get_surfaces_matching("function", "metronome"):
+                self.send_color_to_surface(beat_color, 0, surface)
 
     def send_color_to_surface(self, color, mode, surface):
-        self.client.send_note_on(mode, surface, color)
+        surface_config = self.config.get_surface_config(surface)
+        self.client.send_note_on(mode, int(surface_config['index']), color)
 
     def _send_display_text_row(self, msg, row):
         # TODO: check it exists
