@@ -53,8 +53,11 @@ class Metronome(AppService):
     def on_message(self, msg):
         # TODO: switch msg type
         print("Message in metronome: " + repr(msg))
-        # TODO: other messages?
-        self.enabled = not self.enabled
+        if msg == "click":
+            self.enabled = not self.enabled
+        elif msg == "tap":
+            # TODO: tap out tempo (beware of tick sleeps)
+            print("TAP!")
 
     def send_note(self, channel, note, velocity, wait):
         self.synthInbox.put(MidiEvent("midi", mido.Message("note_on", note=note, channel=channel, velocity=velocity)))

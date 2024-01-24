@@ -33,14 +33,17 @@ class AppService:
         self.inbox.append(msg)
 
     def check_inbox(self):
-        try:
-            msg = self.inbox.get(self.blocking)
-        except queue.Empty:
-            return
-        if (isinstance(msg, str) and msg == "exit"):
-            self.active = False
-        else:
-            self.on_message(msg)
+        looping = True
+        while looping:
+            try:
+                msg = self.inbox.get(self.blocking)
+                if (isinstance(msg, str) and msg == "exit"):
+                    self.active = False
+                else:
+                    self.on_message(msg)
+            except queue.Empty:
+                looping = False
+            looping = looping and not self.blocking
 
     def startup(self):
         pass
