@@ -1,6 +1,7 @@
 from .midi import MidiClient
-from .appconfig import load_common, load_keyboards, find_keyboard_port
+from .appconfig import find_keyboard_port
 from .appservice import AppService
+from .dawconfig import DawConfig
 from .metronome import MetronomeTick
 
 class KbdOperation:
@@ -25,7 +26,7 @@ class MidiKeyboard(AppService):
         super().__init__(inbox)
     
     def startup(self):
-        self.config = load_keyboards()
+        self.config = DawConfig()
         self.client = MidiClient("keyboard")
         kbd_port = find_keyboard_port(port_type='daw')
         self.port = self.client.create_output_port(kbd_port)
@@ -35,12 +36,12 @@ class MidiKeyboard(AppService):
         self.leave_daw_mode()
 
     def enter_daw_mode(self):
-        cfg = self.config['daw.enable']
+        cfg = self.config.get_section('daw.enable')
         self.client.send_note_on(int(cfg['chan']), int(cfg['key']), int(cfg['val']))
 
     def leave_daw_mode(self):
         self.client.send_note_on(0, 112, 0)
-        cfg = self.config['daw.disable']
+        cfg = self.config.get_section('daw.disable')
         self.client.send_note_on(int(cfg['chan']), int(cfg['key']), int(cfg['val']))
 
     def on_message(self, msg):
@@ -69,12 +70,12 @@ class MidiKeyboard(AppService):
 
     def send_color_to_session_pad(self, color, mode, index):
         # TODO: check it exists
-        config = self.config['daw.surfaces.session.' + str(index)]
+        config = self.config.get_surface_config('session.' + str(index))
         self.send_color_to_surface(color, mode, int(config['index']))
 
     def send_color_to_drum_pad(self, color, mode, index):
         # TODO: check it exists
-        config = self.config['daw.surfaces.drum.' + str(index)]
+        config = self.config.get_surface_config('drum.' + str(index))
         self.send_color_to_surface(color, mode, int(config['index']))
 
     def send_color_to_surface(self, color, mode, surface):
@@ -82,7 +83,7 @@ class MidiKeyboard(AppService):
 
     def _send_display_text_row(self, msg, row):
         # TODO: check it exists
-        config_display = self.config['daw.display']
+        config_display = self.config.get_section('daw.display')
         display_width = int(config_display['width'])
         display_rows = int(config_display['rows'])
         
@@ -94,13 +95,13 @@ class MidiKeyboard(AppService):
             'message': row_msg
         }
         # TODO: check it exists
-        sysex = build_sysex_message(self.config['daw.display.set'], params)
+        sysex = build_sysex_message(self.config.get_section('daw.display.set'), params)
         self.client.send_sysex(sysex)
 
     def _send_display_text_clear(self):
         params = {}
         # TODO: check it exists
-        sysex = build_sysex_message(self.config['daw.display.clear'], params)
+        sysex = build_sysex_message(self.config.get_section('daw.display.clear'), params)
         self.client.send_sysex(sysex)
 
     def send_display_text(self, msg):
