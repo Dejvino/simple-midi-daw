@@ -49,7 +49,7 @@ class MidiKeyboard(AppService):
         #print("Message in Keyboard: " + repr(msg))
         if (isinstance(msg, KbdOperation)):
             if (isinstance(msg, KbdColorOp)):
-                self.send_color_to_surface(msg.color, msg.color_mode, surface_type + '.' + msg.surface_index)
+                self.send_color_to_surface(msg.color, msg.color_mode, msg.surface_index)
             elif (isinstance(msg, KbdDisplayTextOp)):
                 self.send_display_text(msg.message)
         if isinstance(msg, MetronomeTick):

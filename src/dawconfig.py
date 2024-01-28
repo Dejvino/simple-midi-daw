@@ -37,14 +37,16 @@ class DawConfig:
     def is_surface(self, event, surface):
         return self.is_event_matching_config(event, 'daw.surfaces.' + surface)
 
-    def get_all_surfaces(self, surface_types=["session"]):
+    def get_all_surfaces(self, surface_types=None):
         cfg = self.config
-        for surface_type in surface_types:
-            width = int(cfg['daw.surfaces.' + surface_type]['width'])
-            rows = int(cfg['daw.surfaces.' + surface_type]['rows'])
-            for index in range(0, width*rows):
-                surface = surface_type + '.' + str(index)
-                yield surface
+        count = int(cfg['daw.surfaces']['count'])
+        for index in range(0, count):
+            surface = str(index)
+            if surface_types != None:
+                fn = cfg['daw.surfaces.' + surface]['function']
+                if not fn in surface_types:
+                    continue
+            yield surface
 
     def get_event_surface(self, event):
         cfg = self.config
@@ -54,17 +56,17 @@ class DawConfig:
         return None
 
     def get_surface_config(self, surface):
-        return self.config['daw.surfaces.' + surface]
+        return self.config['daw.surfaces.' + str(surface)]
 
     def get_surface_value(self, surface, key, default=None):
         surface_config = self.get_surface_config(surface)
         if key in surface_config:
-            return surface_config['function']
+            return surface_config[key]
         else:
             return default
 
     def get_surfaces_matching(self, key, value):
         for surface in self.get_all_surfaces():
             surface_config = self.get_surface_config(surface)
-            if key in surface_config and surface_config[key] == value:
+            if key in surface_config and surface_config[key] == str(value):
                 yield surface
