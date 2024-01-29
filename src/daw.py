@@ -69,6 +69,7 @@ class Daw(AppService):
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, 38, 2))
                 self.kbdInbox.append(KbdDisplayTextOp("LOOP"))
         if msg.source_type == "midi":
+            msg.event.channel = int(self.status_active_session)
             self.synthInbox.append(msg)
             self.recorderInbox.append(msg)
         if msg.source_type == "daw":
