@@ -9,12 +9,18 @@ from .appservices import AppServiceThread
 from .midi import MidiEvent, ActiveNotesTracker
 from .metronome import MetronomeTick
 
+class PlaybackMsg:
+    def __init__(self, operation, channel):
+        self.operation = operation
+        self.channel = int(channel)
+
 class Playback(AppService):
-    def __init__(self, inbox, synthInbox):
+    def __init__(self, inbox, dawInbox, synthInbox):
         super().__init__(inbox)
+        self.dawInbox = dawInbox
         self.synthInbox = synthInbox
         self.file = "recording.mid"
-        self.play_threads = []
+        self.play_threads = {}
         self.looping = False
 
     def startup(self):
@@ -28,71 +34,79 @@ class Playback(AppService):
 
     def on_message(self, msg):
         #print("Message in playback: " + repr(msg))
-        if isinstance(msg, str):
-            if (msg == "play"):
-                self.on_play()
-            elif (msg == "stop"):
-                self.on_stop()
-            elif (msg == "loop"):
-                self.on_loop()
-            elif (msg == "play_done"):
-                self.on_thread_done()
-                    
+        if isinstance(msg, PlaybackMsg):
+            op = msg.operation
+            if (op == "play"):
+                self.on_play(msg)
+            elif (op == "stop"):
+                self.on_stop(msg)
+            elif (op == "loop"):
+                self.on_loop(msg)
+            elif (op == "play_done"):
+                self.on_thread_done(msg)
             else:
-                print("Unknown playback message: " + repr(msg))
+                print("Unknown playback message operation: " + repr(op))
         elif isinstance(msg, MetronomeTick):
             if msg.current_beat == 0:
-                for thread in self.play_threads:
+                for thread in self.play_threads.values():
                     thread.service.inbox.put("play_if_paused")
                 
         else:
             print("Unknown playback message: " + repr(msg))
         
-    def on_play(self):
+    def on_play(self, msg):
         print("Playback: PLAY")
-        self.start_play_thread()
+        self.start_play_thread(channel=msg.channel)
 
-    def on_stop(self):
+    def on_stop(self, msg):
         print("Playback: STOP")
-        self.try_play_thread_stop()
+        self.try_play_thread_stop(channel=msg.channel)
 
-    def on_loop(self):
+    def on_loop(self, msg):
         self.looping = not self.looping
         print("Playback: LOOP", self.looping)
         if self.looping:
-            self.start_play_thread(loop=True)
+            self.start_play_thread(channel=msg.channel, loop=True)
 
-    def on_thread_done(self):
+    def on_thread_done(self, msg):
         done_threads = []
-        for thread in self.play_threads:
+        for key, thread in self.play_threads.items():
             if not thread.is_alive():
                 thread.join()
-                done_threads.append(thread)
+                done_threads.append(key)
         for done_thread in done_threads:
-            self.play_threads.remove(done_thread)
+            del self.play_threads[done_thread]
 
-    def try_play_thread_stop(self):
-        for thread in self.play_threads:
-            print("Playback stopping player.")
-            thread.deliver_message("exit")
-        for thread in self.play_threads:
-            thread.join()
-            print("Playback player finished.")
-        self.play_threads = []
+    def try_play_thread_stop(self, channel=None):
+        if channel == None:
+            for thread in self.play_threads.values():
+                print("Playback stopping player.")
+                thread.deliver_message("exit")
+            for thread in self.play_threads.values():
+                thread.join()
+                print("Playback player finished.")
+            self.play_threads = {}
+        else:
+            if channel in self.play_threads:
+                thread = self.play_threads[channel]
+                thread.deliver_message("exit")
+                thread.join()
+                del self.play_threads[channel]
 
-    def start_play_thread(self, loop=False):
+    def start_play_thread(self, channel, loop=False):
         # TODO: limit to one thread per measure
-        thread = AppServiceThread(PlayerService(AppServiceInbox(), self.file, self.synthInbox, self.inbox, loop=loop))
+        thread = AppServiceThread(PlayerService(AppServiceInbox(), self.file, self.synthInbox, self.inbox, channel, loop=loop))
         thread.start()
-        self.play_threads.append(thread)
+        self.play_threads[channel] = thread
 
 class PlayerService(AppService):
-    def __init__(self, inbox, file, synthInbox, playerInbox, loop=False):
+    def __init__(self, inbox, file, synthInbox, playerInbox, channel, loop=False):
         super().__init__(inbox, blocking=False)
         self.file = file
         self.synthInbox = synthInbox
         self.playerInbox = playerInbox
         self.paused = True
+        self.channel = channel
         self.loop = loop
         self.ticks_per_beat = 480
         self.active_notes_tracker = None
@@ -114,7 +128,7 @@ class PlayerService(AppService):
     def shutdown(self):
         self.play_stop()
         print("Playback done: ", self.file)
-        self.playerInbox.put("play_done")
+        self.playerInbox.put(PlaybackMsg("play_done", channel=self.channel))
          
     def tick(self):
         if self.paused:
@@ -127,6 +141,7 @@ class PlayerService(AppService):
             message = self.next_note
             while timeout == 0:
                 if message and not isinstance(message, mido.MetaMessage):
+                    message.channel = self.channel
                     self.active_notes_tracker.consume_midi_event(message)
                     self.synthInbox.put(MidiEvent("midi", message))
                 self.next_note_time, message = next(self.play)
