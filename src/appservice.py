@@ -12,7 +12,7 @@ class QDek(deque):
     def get(self, block=True, timeout=None):
         try:
             while block and len(self) == 0:
-                time.sleep(0.0001)
+                time.sleep(0)
             return self.popleft()
         except IndexError:
             raise queue.Empty()
