@@ -1,14 +1,37 @@
+from collections import deque
 import queue
+import time
+
+class QDek(deque):
+    def __init__(self):
+        super().__init__()
+    
+    # Queue facade:
+    def put(self, item):
+        self.append(item)
+    def get(self, block=True, timeout=None):
+        try:
+            while block and len(self) == 0:
+                time.sleep(0.0001)
+            return self.popleft()
+        except IndexError:
+            raise queue.Empty()
+    def empty(self):
+        return len(self) == 0
 
 class AppServiceInbox:
     def __init__(self):
-        self.queue = queue.Queue()
+        self.queue = QDek()
 
     # Queue interface:
     def put(self, item):
         self.queue.put(item)
     def get(self, block=True, timeout=None):
         return self.queue.get(block, timeout)
+    def get_nowait(self, timeout=None):
+        return self.get(block=False, timeout=timeout)
+    def empty(self):
+        return self.queue.empty()
 
     # deque interface:
     def append(self, item):
@@ -18,6 +41,7 @@ class AppServiceInbox:
 
 class AppService:
     def __init__(self, inbox, blocking=True):
+        assert isinstance(inbox, AppServiceInbox)
         self.inbox = inbox
         self.active = True
         self.blocking = blocking

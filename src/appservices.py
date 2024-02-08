@@ -79,11 +79,12 @@ class AppServices:
 def wrap_runnable_in_thread(runnable):
     def wrapper():
         try:
-            print(runnable.__class__.__name__, "running.")
+            #print(runnable.__class__.__name__, "running.")
             runnable.run()
         except Exception as e:
             print("EXCEPTION: " + str(e))
             traceback.print_exc(file=sys.stdout)
         finally:
-            print(runnable.__class__.__name__, "exiting.")
+            #print(runnable.__class__.__name__, "exiting.")
+            pass
     return Thread(target=wrapper, name=f"wrapped({runnable.__class__.__name__})")

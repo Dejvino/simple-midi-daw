@@ -1,11 +1,11 @@
 import unittest
-import queue
+from src.appservice import AppServiceInbox
 from src.dawstatus import DawStatus, DawStatusOp, DawStatusGet, DawStatusSetKeyValue, DawStatusTestAndSetKeyValue
 
 class dawstatusTest(unittest.TestCase):
     def setUp(self):
-        self.outbox = queue.Queue()
-        self.receiver = queue.Queue()
+        self.outbox = AppServiceInbox()
+        self.receiver = AppServiceInbox()
         self.testee = dawStatus = DawStatus(self.outbox, blocking=False)
 
     def test_get_after_init(self):
