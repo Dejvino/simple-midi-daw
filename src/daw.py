@@ -3,6 +3,7 @@ from .dawconfig import DawConfig
 from .midi import MidiEvent
 from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 from .metronome import MetronomeTick
+from .playback import PlaybackMsg
 
 class Daw(AppService):
     def __init__(self, dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox, recorderInbox):
@@ -45,13 +46,13 @@ class Daw(AppService):
             if (cfg.is_key_pressed(event, "click")):
                 self.metronomeInbox.append("click")
             elif (cfg.is_key_pressed(event, "play")):
-                self.playbackInbox.append("play")
+                self.playbackInbox.append(PlaybackMsg("play", channel=self.status_active_session))
                 # TODO: remove demo
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_active, 0))
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_play, 2))
                 self.kbdInbox.append(KbdDisplayTextOp("PLAY"))
             elif (cfg.is_key_pressed(event, "stop")):
-                self.playbackInbox.append("stop")
+                self.playbackInbox.append(PlaybackMsg("stop", channel=self.status_active_session))
                 self.recorderInbox.append("stop")
                 # TODO: remove demo
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_active, 0))
@@ -63,7 +64,7 @@ class Daw(AppService):
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, 72, 1))
                 self.kbdInbox.append(KbdDisplayTextOp("REC"))
             elif (cfg.is_key_pressed(event, "loop")):
-                self.playbackInbox.append("loop")
+                self.playbackInbox.append(PlaybackMsg("loop", channel=self.status_active_session))
                 # TODO: remove demo
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_loop, 0))
                 self.kbdInbox.append(KbdColorOp("session", self.status_active_session, 38, 2))
