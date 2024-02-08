@@ -25,19 +25,21 @@ class AppServiceInbox:
 
     # Queue interface:
     def put(self, item):
-        self.queue.put(item)
+        self.queue.append(item)
     def get(self, block=True, timeout=None):
+        if not block and len(self.queue) > 0:
+            return self.queue.popleft()
         return self.queue.get(block, timeout)
     def get_nowait(self, timeout=None):
-        return self.get(block=False, timeout=timeout)
+        return self.queue.popleft()
     def empty(self):
-        return self.queue.empty()
+        return len(self.queue) == 0
 
     # deque interface:
     def append(self, item):
-        self.put(item)
+        self.queue.append(item)
     def popleft(self):
-        return self.get()
+        return self.queue.popleft()
 
 class AppService:
     def __init__(self, inbox, blocking=True):
