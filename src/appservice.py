@@ -10,12 +10,13 @@ class QDek(deque):
     def put(self, item):
         self.append(item)
     def get(self, block=True, timeout=None):
-        try:
-            while block and len(self) == 0:
+        while True:
+            try:
+                return self.popleft()
+            except IndexError:
+                if not block:
+                    raise queue.Empty()
                 time.sleep(0)
-            return self.popleft()
-        except IndexError:
-            raise queue.Empty()
     def empty(self):
         return len(self) == 0
 
@@ -40,6 +41,8 @@ class AppServiceInbox:
         self.queue.append(item)
     def popleft(self):
         return self.queue.popleft()
+    def __len__(self):
+        return len(self.queue)
 
 class AppService:
     def __init__(self, inbox, blocking=True):

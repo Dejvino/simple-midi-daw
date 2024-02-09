@@ -1,7 +1,7 @@
 import timeit
 import queue
 from collections import deque
-from .appservice import AppService, AppServiceInbox
+from .appservice import AppService, AppServiceInbox, QDek
 from .appservices import AppServices, AppServiceThread
 
 msgs_per_run = 10000
@@ -28,11 +28,7 @@ def test_q(q):
             assert q.empty()
     return B()
 
-def test_queue():
-    return test_q(queue.Queue())
-
-def test_deque():
-    q = deque()
+def test_dq(q):
     class B(Benchmark):
         def run(self):
             genMessages(lambda m : q.append(m))
@@ -41,8 +37,23 @@ def test_deque():
             assert len(q) == 0
     return B()
 
+def test_queue():
+    return test_q(queue.Queue())
+
+def test_deque():
+    return test_dq(deque())
+
+def test_qdek_queue():
+    return test_q(QDek())
+
+def test_qdek_deque():
+    return test_dq(QDek())
+
 def test_AppServiceInbox():
     return test_q(AppServiceInbox())
+
+def test_AppServiceInbox_dq():
+    return test_dq(AppServiceInbox())
 
 def test_AppService():
     q = AppServiceInbox()
@@ -108,7 +119,13 @@ def bmark(name, gen, times):
 def main():
     bmark("queue", test_queue, 10)
     bmark("deque", test_deque, 100)
+    bmark("QDek (queue API)", test_qdek_queue, 100)
+    bmark("QDek (deque API)", test_qdek_deque, 100)
     bmark("AppServiceInbox", test_AppServiceInbox, 100)
+    bmark("AppServiceInbox (deque API)", test_AppServiceInbox_dq, 100)
     bmark("AppService default", test_AppService, 100)
     bmark("AppService non-blocking", test_AppService_nonblocking, 100)
     bmark("AppServiceThread", test_AppServiceThread, 100)
+
+def profile():
+    bmark("AppServiceInbox (deque API)", test_AppServiceInbox_dq, 1000)
