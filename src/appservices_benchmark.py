@@ -102,10 +102,11 @@ def bmark(name, gen, times):
         print("")
     time = t / times
     runs_per_second = 1 / time
-    print("\t\t runs/s: " + str(runs_per_second) + "\t msgs/s: " + str(msgs_per_run * runs_per_second))
+    msgs_per_minute = msgs_per_run * runs_per_second / 60
+    print(f"\t\t msgs/min: {msgs_per_minute:12.2f}")
 
 def main():
-    bmark("queue", test_queue, 100)
+    bmark("queue", test_queue, 10)
     bmark("deque", test_deque, 100)
     bmark("AppServiceInbox", test_AppServiceInbox, 100)
     bmark("AppService default", test_AppService, 100)
