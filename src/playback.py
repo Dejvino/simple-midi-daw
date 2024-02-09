@@ -134,7 +134,8 @@ class PlayerService(AppService):
         if self.paused:
             return
         # TODO: tolerance?
-        if time.time() + 0.1 < self.next_note_time:
+        if time.time() + 0.025 < self.next_note_time:
+            time.sleep(0)
             return
         try:
             timeout = 0
