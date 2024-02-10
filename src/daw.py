@@ -28,6 +28,8 @@ class Daw(AppService):
             self.on_midi_event(msg)
         elif isinstance(msg, MetronomeTick):
             self.on_metronome_tick(msg)
+        elif isinstance(msg, PlaybackMsg):
+            self.on_playback(msg)
         else:
             print("Message in DAW not processed: " + repr(msg))
 
@@ -55,12 +57,7 @@ class Daw(AppService):
                     if event.type == 'note_on' and event.velocity > 0:
                         self.metronomeInbox.append("tap")
                 if fn == 'session':
-                    old_session = self.surfaces.active
-                    new_session = cfg.get_surface_value(surface, "session_offset")
-                    if old_session != new_session:
-                        self.surfaces.active = new_session
-                        self.surfaces.set_color(self.map_session_to_surface(old_session), "default") # TODO: restore based on status
-                        self.surfaces.set_color(self.map_session_to_surface(new_session), "active") # TODO: restore based on status
+                    self.surfaces.active = surface
 
     def on_midi_sound(self, msg):
         msg.event.channel = int(self.surfaces.active)
@@ -71,28 +68,50 @@ class Daw(AppService):
         self.metronomeInbox.append("click")
         
     def on_press_play(self):
-        self.playbackInbox.append(PlaybackMsg("play", channel=self.surfaces.active))
-        self.surfaces.set_color_on_active("play")
+        self.playbackInbox.append(PlaybackMsg("play", channel=self.get_active_channel()))
+        self.surfaces.set_color_on_active("play_scheduled")
 
     def on_press_stop(self):
-        self.playbackInbox.append(PlaybackMsg("stop", channel=self.surfaces.active))
+        self.playbackInbox.append(PlaybackMsg("stop", channel=self.get_active_channel()))
         self.recorderInbox.append("stop")
         self.surfaces.set_color_on_active("active")
 
-    def  on_press_record(self):
+    def on_press_record(self):
         self.recorderInbox.append("record")
         self.surfaces.set_color_on_active("record_scheduled")
 
     def on_press_loop(self):
-        self.playbackInbox.append(PlaybackMsg("loop", channel=self.surfaces.active))
+        self.playbackInbox.append(PlaybackMsg("loop", channel=self.get_active_channel()))
         self.surfaces.set_color_on_active("loop_scheduled")
-
-    def map_session_to_surface(self, session):
-        for surface in self.cfg.get_surfaces_matching("session_offset", session):
-            return surface
-        return None
 
     def on_metronome_tick(self, msg):
         self.playbackInbox.put(msg)
         self.recorderInbox.put(msg)
         self.kbdInbox.put(msg)
+
+    def on_playback(self, msg):
+        op = msg.operation
+        ch = self.map_channel_to_surface(msg.channel)
+        if op in ["play_stopped", "loop_stopped"]:
+            self.surfaces.set_color(ch, "default")
+        elif op == "play_paused":
+            self.surfaces.set_color(ch, "paused")
+        elif op == "play_started":
+            self.surfaces.set_color(ch, "play")
+        elif op == "loop_paused":
+            self.surfaces.set_color(ch, "loop_paused")
+        elif op == "loop_started":
+            self.surfaces.set_color(ch, "loop")
+        else:
+            print("Unknown playback msg op: ", op)
+
+    def map_channel_to_surface(self, channel):
+        for surface in self.cfg.get_surfaces_matching("session_offset", channel):
+            return surface
+        return None
+
+    def map_surface_to_channel(self, surface):
+        return self.cfg.get_surface_value(surface, "session_offset")
+
+    def get_active_channel(self):
+        return self.map_surface_to_channel(self.surfaces.active)

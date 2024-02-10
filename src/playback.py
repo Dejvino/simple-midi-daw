@@ -42,8 +42,10 @@ class Playback(AppService):
                 self.on_stop(msg)
             elif (op == "loop"):
                 self.on_loop(msg)
-            elif (op == "play_done"):
+            elif op in ["play_done", "loop_done"]:
                 self.on_thread_done(msg)
+            elif op in ["play_stopped", "play_started", "play_paused", "loop_stopped", "loop_started", "loop_paused"]:
+                self.report_up(msg)
             else:
                 print("Unknown playback message operation: " + repr(op))
         elif isinstance(msg, MetronomeTick):
@@ -74,6 +76,7 @@ class Playback(AppService):
             if not thread.is_alive():
                 thread.join()
                 done_threads.append(key)
+                self.report_up("play_stopped", channel=key)
         for done_thread in done_threads:
             del self.play_threads[done_thread]
 
@@ -92,12 +95,20 @@ class Playback(AppService):
                 thread.deliver_message("exit")
                 thread.join()
                 del self.play_threads[channel]
+                self.report_up("play_stopped", channel=channel)
 
     def start_play_thread(self, channel, loop=False):
         # TODO: limit to one thread per measure
         thread = AppServiceThread(PlayerService(AppServiceInbox(), self.file, self.synthInbox, self.inbox, channel, loop=loop))
         thread.start()
         self.play_threads[channel] = thread
+
+    def report_up(self, operation, channel=None):
+        if isinstance(operation, PlaybackMsg):
+            msg = operation
+        else:
+            msg = PlaybackMsg(operation, channel)
+        self.dawInbox.append(msg)
 
 class PlayerService(AppService):
     def __init__(self, inbox, file, synthInbox, playerInbox, channel, loop=False):
@@ -128,7 +139,7 @@ class PlayerService(AppService):
     def shutdown(self):
         self.play_stop()
         print("Playback done: ", self.file)
-        self.playerInbox.put(PlaybackMsg("play_done", channel=self.channel))
+        self.report_up("done")
          
     def tick(self):
         if self.paused:
@@ -173,6 +184,7 @@ class PlayerService(AppService):
 
     def play_start(self):
         self.paused = False
+        self.report_up("started")
         self.play_started = time.time()
         self.play_ending = self.play_started + self.play_length
         self.active_notes_tracker = ActiveNotesTracker()
@@ -181,6 +193,7 @@ class PlayerService(AppService):
 
     def play_stop(self):
         self.paused = True
+        self.report_up("paused")
         if self.active_notes_tracker != None:
             note_offs = self.active_notes_tracker.get_note_offs()
             for note in note_offs:
@@ -195,3 +208,7 @@ class PlayerService(AppService):
         for msg in self.midifile:
             input_time += msg.time
             yield start_time + input_time, msg
+
+    def report_up(self, operation):
+        op = ("loop" if self.loop else "play") + "_" + operation
+        self.playerInbox.append(PlaybackMsg(op, channel=self.channel))
