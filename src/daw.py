@@ -1,9 +1,10 @@
 from .appservice import AppService
 from .dawconfig import DawConfig
 from .midi import MidiEvent
-from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 from .metronome import MetronomeTick
 from .playback import PlaybackMsg
+from .dawsurfaces import DawSurfaces
+from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 
 class Daw(AppService):
     def __init__(self, dawInbox, kbdInbox, synthInbox, metronomeInbox, playbackInbox, recorderInbox):
@@ -13,19 +14,11 @@ class Daw(AppService):
         self.metronomeInbox = metronomeInbox
         self.playbackInbox = playbackInbox
         self.recorderInbox = recorderInbox
-        self.status_active_session = 0
+        self.surfaces = DawSurfaces(kbdInbox)
 
     def startup(self):
         self.cfg = DawConfig()
-        self.color_session_default = 23
-        self.color_session_active = 20
-        self.color_session_play = 21
-        self.color_session_record_scheduled = 107
-        self.color_session_record_active = 72
-        self.color_session_loop = 36
-        for surface in self.cfg.get_all_surfaces():
-            self.kbdInbox.append(KbdColorOp("session", surface, self.color_session_default, 0))
-        self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_active, 0))
+        self.surfaces.init(self.cfg)
 
     def shutdown(self):
         pass
@@ -41,38 +34,19 @@ class Daw(AppService):
     def on_midi_event(self, msg):
         cfg = self.cfg
         event = msg.event
-        print(f"{msg.source_type}: " + repr(event))
         if event.type == "control_change":            
             if (cfg.is_key_pressed(event, "click")):
-                self.metronomeInbox.append("click")
+                self.on_press_click()
             elif (cfg.is_key_pressed(event, "play")):
-                self.playbackInbox.append(PlaybackMsg("play", channel=self.status_active_session))
-                # TODO: remove demo
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_active, 0))
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_play, 2))
-                self.kbdInbox.append(KbdDisplayTextOp("PLAY"))
+                self.on_press_play()
             elif (cfg.is_key_pressed(event, "stop")):
-                self.playbackInbox.append(PlaybackMsg("stop", channel=self.status_active_session))
-                self.recorderInbox.append("stop")
-                # TODO: remove demo
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_active, 0))
-                self.kbdInbox.append(KbdDisplayTextOp())
+                self.on_press_stop()
             elif (cfg.is_key_pressed(event, "record")):
-                self.recorderInbox.append("record")
-                # TODO: remove demo
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_record_scheduled, 0))
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, 72, 1))
-                self.kbdInbox.append(KbdDisplayTextOp("REC"))
+                self.on_press_record()
             elif (cfg.is_key_pressed(event, "loop")):
-                self.playbackInbox.append(PlaybackMsg("loop", channel=self.status_active_session))
-                # TODO: remove demo
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, self.color_session_loop, 0))
-                self.kbdInbox.append(KbdColorOp("session", self.status_active_session, 38, 2))
-                self.kbdInbox.append(KbdDisplayTextOp("LOOP"))
+                self.on_press_loop()
         if msg.source_type == "midi":
-            msg.event.channel = int(self.status_active_session)
-            self.synthInbox.append(msg)
-            self.recorderInbox.append(msg)
+            self.on_midi_sound(msg)
         if msg.source_type == "daw":
             surface = cfg.get_event_surface(event)
             if surface != None:
@@ -81,13 +55,37 @@ class Daw(AppService):
                     if event.type == 'note_on' and event.velocity > 0:
                         self.metronomeInbox.append("tap")
                 if fn == 'session':
-                    old_session = self.status_active_session
+                    old_session = self.surfaces.active
                     new_session = cfg.get_surface_value(surface, "session_offset")
                     if old_session != new_session:
-                        self.status_active_session = new_session
-                        # TODO: remove demo
-                        self.kbdInbox.append(KbdColorOp("session", self.map_session_to_surface(old_session), self.color_session_default, 0))
-                        self.kbdInbox.append(KbdColorOp("session", self.map_session_to_surface(new_session), self.color_session_active, 0))
+                        self.surfaces.active = new_session
+                        self.surfaces.set_color(self.map_session_to_surface(old_session), "default") # TODO: restore based on status
+                        self.surfaces.set_color(self.map_session_to_surface(new_session), "active") # TODO: restore based on status
+
+    def on_midi_sound(self, msg):
+        msg.event.channel = int(self.surfaces.active)
+        self.synthInbox.append(msg)
+        self.recorderInbox.append(msg)
+
+    def on_press_click(self):
+        self.metronomeInbox.append("click")
+        
+    def on_press_play(self):
+        self.playbackInbox.append(PlaybackMsg("play", channel=self.surfaces.active))
+        self.surfaces.set_color_on_active("play")
+
+    def on_press_stop(self):
+        self.playbackInbox.append(PlaybackMsg("stop", channel=self.surfaces.active))
+        self.recorderInbox.append("stop")
+        self.surfaces.set_color_on_active("active")
+
+    def  on_press_record(self):
+        self.recorderInbox.append("record")
+        self.surfaces.set_color_on_active("record_scheduled")
+
+    def on_press_loop(self):
+        self.playbackInbox.append(PlaybackMsg("loop", channel=self.surfaces.active))
+        self.surfaces.set_color_on_active("loop_scheduled")
 
     def map_session_to_surface(self, session):
         for surface in self.cfg.get_surfaces_matching("session_offset", session):
