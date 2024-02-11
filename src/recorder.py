@@ -12,10 +12,16 @@ from .appservices import AppServiceThread
 from .midi import MidiEvent
 from .metronome import MetronomeTick
 
+class RecorderMsg:
+    def __init__(self, operation, channel=None, file=None):
+        self.operation = operation
+        self.channel = int(channel)
+        self.file = file
+
 class Recorder(AppService):
     def __init__(self, inbox):
         super().__init__(inbox)
-        self.file = "recording.mid"
+        self.file = None
         self.recording = False
         self.timer_last = time.time()
         self.ticks_per_beat = 480
@@ -30,12 +36,15 @@ class Recorder(AppService):
         pass
 
     def on_message(self, msg):
-        # TODO: switch msg type
         #print("Message in record: " + repr(msg))
-        if (msg == "record"):
-            self.on_record()
-        elif (msg == "stop"):
-            self.on_stop()
+        if isinstance(msg, RecorderMsg):
+            op = msg.operation
+            if (op == "record"):
+                self.on_record(msg.file)
+            elif (op == "stop"):
+                self.on_stop()
+            else:
+                print("Unknown record message op: " + op)
         elif isinstance(msg, MidiEvent):
             if self.active_notes_tracker != None:
                 self.active_notes_tracker.consume_midi_event(msg.event)
@@ -50,8 +59,9 @@ class Recorder(AppService):
         else:
             print("Unknown record message: " + repr(msg))
         
-    def on_record(self):
-        print("Record: REC")
+    def on_record(self, file):
+        print(f"Record: REC ({file})")
+        self.file = file
         self.recording_scheduled = True
         self.active_notes_tracker = ActiveNotesTracker()
 

@@ -3,6 +3,7 @@ from .dawconfig import DawConfig
 from .midi import MidiEvent
 from .metronome import MetronomeTick
 from .playback import PlaybackMsg
+from .recorder import RecorderMsg
 from .dawsurfaces import DawSurfaces
 from .midikeyboard import KbdColorOp, KbdDisplayTextOp
 
@@ -15,6 +16,8 @@ class Daw(AppService):
         self.playbackInbox = playbackInbox
         self.recorderInbox = recorderInbox
         self.surfaces = DawSurfaces(kbdInbox)
+        self.keys_pressed = []
+        self.keys_typed = []
 
     def startup(self):
         self.cfg = DawConfig()
@@ -36,17 +39,18 @@ class Daw(AppService):
     def on_midi_event(self, msg):
         cfg = self.cfg
         event = msg.event
-        if event.type == "control_change":            
-            if (cfg.is_key_pressed(event, "click")):
-                self.on_press_click()
-            elif (cfg.is_key_pressed(event, "play")):
-                self.on_press_play()
-            elif (cfg.is_key_pressed(event, "stop")):
-                self.on_press_stop()
-            elif (cfg.is_key_pressed(event, "record")):
-                self.on_press_record()
-            elif (cfg.is_key_pressed(event, "loop")):
-                self.on_press_loop()
+        if event.type == "control_change":
+            for key in ["play", "stop", "record", "loop"]:
+                if not cfg.is_key(event, key):
+                    continue
+                was_pressed = key in self.keys_pressed
+                is_pressed = cfg.is_key_pressed(event, key)
+                if not was_pressed and is_pressed:
+                    self.keys_pressed.append(key)
+                elif was_pressed and not is_pressed:
+                    self.keys_typed.append(key)
+                    self.keys_pressed.remove(key)
+                    # TODO: on key typed
         if msg.source_type == "midi":
             self.on_midi_sound(msg)
         if msg.source_type == "daw":
@@ -57,7 +61,16 @@ class Daw(AppService):
                     if event.type == 'note_on' and event.velocity > 0:
                         self.metronomeInbox.append("tap")
                 if fn == 'session':
-                    self.surfaces.active = surface
+                    if len(self.keys_pressed) > 0:
+                        for key in self.keys_pressed:
+                            self.run_function_on_channel(key, self.map_surface_to_channel(surface))
+                        self.keys_pressed_used = self.keys_pressed
+                    elif len(self.keys_typed) > 0:
+                        for key in self.keys_typed:
+                            self.run_function_on_channel(key, self.map_surface_to_channel(surface))
+                        self.keys_typed = []
+                    else:
+                        self.surfaces.active = surface
 
     def on_midi_sound(self, msg):
         msg.event.channel = int(self.surfaces.active)
@@ -67,21 +80,21 @@ class Daw(AppService):
     def on_press_click(self):
         self.metronomeInbox.append("click")
         
-    def on_press_play(self):
-        self.playbackInbox.append(PlaybackMsg("play", channel=self.get_active_channel()))
+    def on_press_play(self, channel):
+        self.playbackInbox.append(PlaybackMsg("play", channel=channel, file=f"slot{channel}.mid"))
         self.surfaces.set_color_on_active("play_scheduled")
 
-    def on_press_stop(self):
-        self.playbackInbox.append(PlaybackMsg("stop", channel=self.get_active_channel()))
-        self.recorderInbox.append("stop")
+    def on_press_stop(self, channel):
+        self.playbackInbox.append(PlaybackMsg("stop", channel=channel))
+        self.recorderInbox.append(RecorderMsg("stop", channel=channel))
         self.surfaces.set_color_on_active("active")
 
-    def on_press_record(self):
-        self.recorderInbox.append("record")
+    def on_press_record(self, channel):
+        self.recorderInbox.append(RecorderMsg("record", channel=channel, file=f"slot{channel}.mid"))
         self.surfaces.set_color_on_active("record_scheduled")
 
-    def on_press_loop(self):
-        self.playbackInbox.append(PlaybackMsg("loop", channel=self.get_active_channel()))
+    def on_press_loop(self, channel):
+        self.playbackInbox.append(PlaybackMsg("loop", channel=channel, file=f"slot{channel}.mid"))
         self.surfaces.set_color_on_active("loop_scheduled")
 
     def on_metronome_tick(self, msg):
@@ -104,6 +117,21 @@ class Daw(AppService):
             self.surfaces.set_color(ch, "loop")
         else:
             print("Unknown playback msg op: ", op)
+
+    def run_function_on_channel(self, function, channel):
+        fn = function
+        if fn == "click":
+            self.on_press_click(channel)
+        elif fn == "play":
+            self.on_press_play(channel)
+        elif fn == "stop":
+            self.on_press_stop(channel)
+        elif fn == "record":
+            self.on_press_record(channel)
+        elif fn == "loop":
+            self.on_press_loop(channel)
+        else:
+            print(f"Unknown function name to run: {function}")
 
     def map_channel_to_surface(self, channel):
         for surface in self.cfg.get_surfaces_matching("session_offset", channel):

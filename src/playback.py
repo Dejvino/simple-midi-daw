@@ -1,6 +1,7 @@
 import time
 import subprocess
 from threading import Thread
+from os.path import exists
 import mido
 import traceback, sys
 
@@ -10,16 +11,16 @@ from .midi import MidiEvent, ActiveNotesTracker
 from .metronome import MetronomeTick
 
 class PlaybackMsg:
-    def __init__(self, operation, channel):
+    def __init__(self, operation, channel=None, file=None):
         self.operation = operation
         self.channel = int(channel)
+        self.file = file
 
 class Playback(AppService):
     def __init__(self, inbox, dawInbox, synthInbox):
         super().__init__(inbox)
         self.dawInbox = dawInbox
         self.synthInbox = synthInbox
-        self.file = "recording.mid"
         self.play_threads = {}
         self.looping = False
 
@@ -57,18 +58,29 @@ class Playback(AppService):
             print("Unknown playback message: " + repr(msg))
         
     def on_play(self, msg):
+        self.looping = False
+        channel = msg.channel
         print("Playback: PLAY")
-        self.start_play_thread(channel=msg.channel)
+        if channel in self.play_threads:
+            thread = self.play_threads[channel]
+            thread.deliver_message("loop_off")
+        else:
+            self.start_play_thread(file=msg.file, channel=msg.channel)
 
     def on_stop(self, msg):
+        self.looping = False
         print("Playback: STOP")
         self.try_play_thread_stop(channel=msg.channel)
 
     def on_loop(self, msg):
-        self.looping = not self.looping
-        print("Playback: LOOP", self.looping)
-        if self.looping:
-            self.start_play_thread(channel=msg.channel, loop=True)
+        self.looping = True
+        channel = msg.channel
+        print("Playback: LOOP")
+        if channel in self.play_threads:
+            thread = self.play_threads[channel]
+            thread.deliver_message("loop_on")
+        else:
+            self.start_play_thread(file=msg.file, channel=msg.channel, loop=True)
 
     def on_thread_done(self, msg):
         done_threads = []
@@ -97,9 +109,13 @@ class Playback(AppService):
                 del self.play_threads[channel]
                 self.report_up("play_stopped", channel=channel)
 
-    def start_play_thread(self, channel, loop=False):
+    def start_play_thread(self, file, channel, loop=False):
         # TODO: limit to one thread per measure
-        thread = AppServiceThread(PlayerService(AppServiceInbox(), self.file, self.synthInbox, self.inbox, channel, loop=loop))
+        if not exists(file):
+            print(f"File does not exist: {file}")
+            self.report_up("play_stopped", channel=channel)
+            return
+        thread = AppServiceThread(PlayerService(AppServiceInbox(), file, self.synthInbox, self.inbox, channel, loop=loop))
         thread.start()
         self.play_threads[channel] = thread
 
@@ -171,6 +187,10 @@ class PlayerService(AppService):
     def on_message(self, msg):
         if msg == "play_if_paused":
             self.play_if_paused()
+        elif msg == "loop_on":
+            self.loop = True
+        elif msg == "loop_off":
+            self.loop = False
         
     def play_if_paused(self):
         time_now = time.time()
