@@ -4,6 +4,8 @@ from .appconfig import load_common
 from .appservice import AppService
 from .midi import MidiEvent
 
+TAP_TIME_LIMIT = 2.0
+
 class MetronomeTick:
     def __init__(self, current_beat, beats, measure):
         self.timestamp = time.time()
@@ -11,20 +13,27 @@ class MetronomeTick:
         self.beats = beats,
         self.masure = measure
 
+class MetronomeOp:
+    def __init__(self, operation, timestamp=None):
+        self.operation = operation
+        self.timestamp = timestamp if timestamp != None else time.time()
+
 class Metronome(AppService):
     def __init__(self, inbox, synthInbox, dawInbox):
         super().__init__(inbox, blocking=False)
         self.synthInbox = synthInbox
         self.dawInbox = dawInbox
         self.current_beat = 0
+        self.last_tap = None
+        self.bpm = None
 
     def startup(self):
         self.config = config = load_common()['metronome']
         self.enabled = config.getboolean('enabled')
+        self.bpm = int(config['bpm'])
         
     def tick(self):
         config = self.config
-        bpm = int(config['bpm'])
         beat_primary_note = int(config['beat_primary_note'])
         beat_primary_velocity = int(config['beat_primary_velocity'])
         beat_secondary_note = int(config['beat_secondary_note'])
@@ -33,7 +42,7 @@ class Metronome(AppService):
         beat_time_beats = int(beat_time[0])
         beat_time_measure = int(beat_time[1])
         channel = int(config['channel'])
-        wait = 60 / bpm
+        wait = 60 / self.bpm
 
         self.dawInbox.put(MetronomeTick(self.current_beat, beat_time_beats, beat_time_measure))
         if self.enabled:
@@ -51,13 +60,26 @@ class Metronome(AppService):
         self.current_beat = (self.current_beat + 1) % beat_time_measure
 
     def on_message(self, msg):
-        # TODO: switch msg type
-        print("Message in metronome: " + repr(msg))
-        if msg == "click":
-            self.enabled = not self.enabled
-        elif msg == "tap":
-            # TODO: tap out tempo (beware of tick sleeps)
-            print("TAP!")
+        if isinstance(msg, MetronomeOp):
+            op = msg.operation
+            if op == "click":
+                self.enabled = not self.enabled
+                print(f"Metronome: {self.enabled}")
+            elif op == "tap":
+                self.on_tap(msg)
+        else:
+            print("Unknown metronome msg type: " + repr(msg))
+
+    def on_tap(self, msg):
+        time_now = time.time()
+        time_tap = msg.timestamp
+        if (self.last_tap != None) and (time_now - self.last_tap < TAP_TIME_LIMIT):
+            time_last_tap = self.last_tap
+            time_diff = max(time_tap - time_last_tap, 0.1)
+            self.bpm = min(max(round(60 / time_diff), 30), 600)
+            self.current_beat = 0
+            print(f"New metronome BPM: {self.bpm}")
+        self.last_tap = time_tap
 
     def send_note(self, channel, note, velocity, wait):
         self.synthInbox.put(MidiEvent("midi", mido.Message("note_on", note=note, channel=channel, velocity=velocity)))

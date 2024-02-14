@@ -1,7 +1,7 @@
 from .appservice import AppService
 from .dawconfig import DawConfig
 from .midi import MidiEvent
-from .metronome import MetronomeTick
+from .metronome import MetronomeTick, MetronomeOp
 from .playback import PlaybackMsg
 from .recorder import RecorderMsg
 from .dawsurfaces import DawSurfaces
@@ -51,6 +51,8 @@ class Daw(AppService):
                     self.keys_typed.append(key)
                     self.keys_pressed.remove(key)
                     # TODO: on key typed
+            if cfg.is_key_pressed(event, "click"):
+                self.on_press_click()
         if msg.source_type == "midi":
             self.on_midi_sound(msg)
         if msg.source_type == "daw":
@@ -58,8 +60,7 @@ class Daw(AppService):
             if surface != None:
                 fn = cfg.get_surface_value(surface, "function")
                 if fn == 'metronome':
-                    if event.type == 'note_on' and event.velocity > 0:
-                        self.metronomeInbox.append("tap")
+                    self.on_metronome_surface_event(surface, event)
                 if fn == 'session':
                     if len(self.keys_pressed) > 0:
                         for key in self.keys_pressed:
@@ -78,7 +79,7 @@ class Daw(AppService):
         self.recorderInbox.append(msg)
 
     def on_press_click(self):
-        self.metronomeInbox.append("click")
+        self.metronomeInbox.append(MetronomeOp("click"))
         
     def on_press_play(self, channel):
         self.playbackInbox.append(PlaybackMsg("play", channel=channel, file=f"slot{channel}.mid"))
@@ -118,11 +119,13 @@ class Daw(AppService):
         else:
             print("Unknown playback msg op: ", op)
 
+    def on_metronome_surface_event(self, surface, event):
+        if event.type == 'note_on' and event.velocity > 0:
+            self.metronomeInbox.append(MetronomeOp("tap"))
+
     def run_function_on_channel(self, function, channel):
         fn = function
-        if fn == "click":
-            self.on_press_click(channel)
-        elif fn == "play":
+        if fn == "play":
             self.on_press_play(channel)
         elif fn == "stop":
             self.on_press_stop(channel)
